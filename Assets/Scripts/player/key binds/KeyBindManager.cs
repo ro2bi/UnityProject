@@ -13,7 +13,7 @@ public static class KeybindManager
     public const string JUMP = "Jump";
     public const string MOVE_RIGHT = "MoveRight";
     public const string MOVE_LEFT = "MoveLeft";
-    public const string ATTACK = "Attack";
+    public const string INTERACT = "Interact";
     // Добавьте сюда любые другие действия
 
     // ----------------------------------------------------------------------
@@ -27,7 +27,7 @@ public static class KeybindManager
             { JUMP, KeyCode.Space },
             { MOVE_RIGHT, KeyCode.D },
             { MOVE_LEFT, KeyCode.A },
-            { ATTACK, KeyCode.E }
+            { INTERACT, KeyCode.E }
         };
 
         // 2. Загружаем сохраненные данные, если они есть
