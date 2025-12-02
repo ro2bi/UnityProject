@@ -9,6 +9,7 @@ public class CameraController : MonoBehaviour
     [SerializeField] private float speed;
     // создаём публичную переменную для камеры
     private float currentPosX;
+    private float currentPosY;
     // создаём приватную переменную для текущей позиции камеры по оси X
     private Vector3 velocity = Vector3.zero;
     // создаём приватную переменную для скорости движения камеры
@@ -25,12 +26,24 @@ public class CameraController : MonoBehaviour
 
     private void Update()
     {
-        //комнатный контроллер камеры
-        //transform.position = Vector3.SmoothDamp(transform.position, new Vector3(currentPosX, transform.position.y, transform.position.z), ref velocity, speed);
-        // обновляем позицию камеры, используя метод SmoothDamp для плавного движения
+        // Следящая камера
 
-        // следящая камера
-        transform.position = new Vector3(player.position.x + lookAhead, transform.position.y, transform.position.z);
+        // Вычисляем целевую позицию (target position) с учетом горизонтального опережения и вертикального смещения
+        Vector3 targetPosition = new Vector3(
+            player.position.x + lookAhead,
+            player.position.y + verticalOffset, // Добавляем позицию игрока по Y + смещение
+            transform.position.z
+        );
+
+        // Используем SmoothDamp для плавного движения к целевой позиции
+        transform.position = Vector3.SmoothDamp(
+            transform.position,
+            targetPosition,
+            ref velocity, // Используем общую переменную velocity
+            verticalSpeed // Используем скорость сглаживания по Y
+        );
+
+        // Обновление опережения (Look Ahead) по оси X
         lookAhead = Mathf.Lerp(lookAhead, (aheadDistance * player.localScale.x), cameraSpeed * Time.deltaTime);
     }
 
