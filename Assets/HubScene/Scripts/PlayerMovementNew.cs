@@ -13,8 +13,6 @@ public class PlayerMovementNew : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
 
-        // !!! ВАЖНО: Инициализация KeybindManager перед его использованием !!!
-        // Это гарантирует, что словарь keybinds заполнен (либо по умолчанию, либо загруженными данными).
         KeybindManager.InitializeKeys();
     }
 
@@ -34,22 +32,6 @@ public class PlayerMovementNew : MonoBehaviour
         {
             horizontal = -1f;
         }
-
-        // Вертикальное движение (если нужно, используя стандартные W/S или другие клавиши, если они есть в KeybindManager)
-        // В вашем KeybindManager нет отдельных констант для Up/Down, поэтому используем временные проверки.
-        // Если вы планируете добавить константы MOVE_UP и MOVE_DOWN, используйте их здесь.
-        // Пока что используем прямое считывание, если вы не переназначили вертикальные клавиши:
-        if (Input.GetKey(KeyCode.W)) // Если W - Вперед
-        {
-            vertical = 1f;
-        }
-        else if (Input.GetKey(KeyCode.S)) // Если S - Назад
-        {
-            vertical = -1f;
-        }
-
-        // --- Если вы добавили константы MOVE_UP/MOVE_DOWN в KeybindManager ---
-        /*
         if (Input.GetKey(KeybindManager.GetKey(KeybindManager.MOVE_FORWARD))) 
         {
             vertical = 1f;
@@ -58,7 +40,7 @@ public class PlayerMovementNew : MonoBehaviour
         {
             vertical = -1f;
         }
-        */
+        
 
         // === 2. Обновление moveInput и Аниматора ===
 

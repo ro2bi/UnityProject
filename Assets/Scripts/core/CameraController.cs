@@ -7,6 +7,9 @@ public class CameraController : MonoBehaviour
 {
     //комнатный контроллер камеры
     [SerializeField] private float speed;
+
+    [SerializeField] private float verticalOffset; // Смещение камеры по Y относительно игрока
+    [SerializeField] private float verticalSpeed;  // Скорость сглаживания по Y
     // создаём публичную переменную для камеры
     private float currentPosX;
     private float currentPosY;

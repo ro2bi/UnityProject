@@ -1,20 +1,66 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using TMPro;
 
 public class UIManager : MonoBehaviour
 {
+    public static UIManager Instance { get; private set; }
+
+    [Header("Game Over")]
     [SerializeField] private GameObject gameOverScreen;
     [SerializeField] private AudioClip gameOverSound;
 
     [Header("Pause")]
     [SerializeField] private GameObject pauseScreen;
 
+    [Header("Interaction Prompt")]
+    [SerializeField] private TextMeshProUGUI interactionPromptText;
+
     private void Awake()
     {
+        // Настройка Singleton
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            Instance = this;
+        }
+
         gameOverScreen.SetActive(false);
         pauseScreen.SetActive(false);
+
+        // НОВОЕ: Скрываем текст взаимодействия при старте
+        if (interactionPromptText != null)
+        {
+            interactionPromptText.gameObject.SetActive(false);
+        }
     }
+
+    #region Interaction Prompt Functions
+
+    //Показать подсказку взаимодействия с заданным текстом.</summary>
+    public static void ShowInteractionPrompt(string textToShow)
+    {
+        if (Instance != null && Instance.interactionPromptText != null)
+        {
+            Instance.interactionPromptText.text = textToShow;
+            Instance.interactionPromptText.gameObject.SetActive(true);
+        }
+    }
+
+    //Скрыть подсказку взаимодействия.
+    public static void HideInteractionPrompt()
+    {
+        if (Instance != null && Instance.interactionPromptText != null)
+        {
+            Instance.interactionPromptText.gameObject.SetActive(false);
+        }
+    }
+
+    #endregion
 
     #region Game Over Functions
     //Game over function
@@ -26,7 +72,7 @@ public class UIManager : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
+        if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.TOMENU)))
         {
             //If pause screen already active unpause and viceversa
             PauseGame(!pauseScreen.activeInHierarchy);

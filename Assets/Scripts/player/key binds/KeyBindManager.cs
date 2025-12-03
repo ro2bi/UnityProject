@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 public static class KeybindManager
 {
@@ -9,36 +10,43 @@ public static class KeybindManager
     // Словарь, хранящий текущие привязки: ActionName -> KeyCode
     private static Dictionary<string, KeyCode> keybinds = new Dictionary<string, KeyCode>();
 
+    public static event Action OnKeybindsChanged;
+
     // КОНСТАНТЫ ДЕЙСТВИЙ: используйте эти строки в RebindButton.ActionToRebind
     public const string JUMP = "Jump";
+    public const string MOVE_FORWARD = "MoveForward"; 
+    public const string MOVE_BACKWARD = "MoveBackward";
     public const string MOVE_RIGHT = "MoveRight";
     public const string MOVE_LEFT = "MoveLeft";
-    public const string INTERACT = "Interact";
+    public const string INTERACT = "Interact"; 
+    public const string TOMENU = "ToMenu";
     // Добавьте сюда любые другие действия
 
     // ----------------------------------------------------------------------
     // 1. Инициализация и загрузка (Вызывается один раз при старте игры/меню)
     // ----------------------------------------------------------------------
+
+    private static readonly Dictionary<string, KeyCode> DefaultKeybinds = new Dictionary<string, KeyCode>
+{
+    { JUMP, KeyCode.Space },
+    { MOVE_FORWARD, KeyCode.W },
+    { MOVE_BACKWARD, KeyCode.S },
+    { MOVE_RIGHT, KeyCode.D },
+    { MOVE_LEFT, KeyCode.A },
+    { INTERACT, KeyCode.E },
+    { TOMENU, KeyCode.Escape }
+};
+
     public static void InitializeKeys()
     {
-        // 1. Определяем привязки по умолчанию
-        Dictionary<string, KeyCode> defaultKeybinds = new Dictionary<string, KeyCode>
-        {
-            { JUMP, KeyCode.Space },
-            { MOVE_RIGHT, KeyCode.D },
-            { MOVE_LEFT, KeyCode.A },
-            { INTERACT, KeyCode.E }
-        };
-
-        // 2. Загружаем сохраненные данные, если они есть
         if (PlayerPrefs.HasKey(KeybindsSaveKey))
         {
             LoadKeybinds();
         }
         else
         {
-            // Используем значения по умолчанию, если нет сохраненных
-            keybinds = defaultKeybinds;
+            // Используем значения по умолчанию
+            keybinds = new Dictionary<string, KeyCode>(DefaultKeybinds);
             SaveKeybinds(); // Сохраняем значения по умолчанию
         }
     }
@@ -56,6 +64,20 @@ public static class KeybindManager
         }
         Debug.LogError($"Action '{actionName}' not found in KeybindManager!");
         return KeyCode.None;
+    }
+
+    public static void ResetToDefaults()
+    {
+        // 1. Копируем значения по умолчанию в рабочий словарь
+        keybinds = new Dictionary<string, KeyCode>(DefaultKeybinds);
+
+        // 2. Сохраняем сброшенные значения в PlayerPrefs
+        SaveKeybinds();
+
+        // 3. НОВОЕ: Вызываем событие, чтобы обновить все кнопки
+        OnKeybindsChanged?.Invoke();
+
+        Debug.Log("Keybinds have been reset to default values.");
     }
 
     // Установить новую клавишу для определенного действия
@@ -140,4 +162,6 @@ public static class KeybindManager
             Debug.Log("Keybinds loaded successfully.");
         }
     }
+
+
 }

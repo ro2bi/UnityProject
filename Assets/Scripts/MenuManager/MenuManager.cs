@@ -26,6 +26,21 @@ public class MenuManager : MonoBehaviour
     public Sprite checkSprite;
     public Sprite crossSprite;
 
+    public static MenuManager Instance { get; private set; }
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
     void Start()
     {
         // Инициализация при старте (например, для главного меню)
@@ -39,14 +54,21 @@ public class MenuManager : MonoBehaviour
         {
             keybindsScreen.SetActive(false);
         }
+
+        KeybindManager.InitializeKeys();
     }
 
     // --- Логика Запуска и Паузы (Не изменена) ---
     public void StartGame()
     {
         Debug.Log("Start pressed!");
-        SceneManager.LoadScene("Level1"); // change to your gameplay scene name
+        SceneManager.LoadScene("HubScene"); 
     }
+
+    public void ResetBinds()
+    {
+        KeybindManager.ResetToDefaults();
+    }
 
     public void PauseGame()
     {

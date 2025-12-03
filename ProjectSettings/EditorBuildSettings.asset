@@ -11,7 +11,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Levels/MenuScene.unity
     guid: e6aa81aad72870247bfe781da65e444f
-  - enabled: 1
+  - enabled: 0
     path: Assets/Levels/Level1.unity
     guid: 2cda990e2423bbf4892e6590ba056729
+  - enabled: 1
+    path: Assets/Levels/HubScene.unity
+    guid: 59f6f88fda8ad8a4ba3f7564ef6f9bd6
   m_configObjects: {}
