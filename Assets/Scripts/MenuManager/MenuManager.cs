@@ -9,10 +9,7 @@ using System.Linq;
 public class MenuManager : MonoBehaviour
 {
     [SerializeField] private GameObject pauseScreen;
-    // --- НОВОЕ ПОЛЕ: Ссылка на меню переназначения клавиш ---
     [SerializeField] private GameObject keybindsScreen;
-
-    // --- НОВОЕ ПОЛЕ: Ссылка на главный игровой интерфейс (HUD) ---
     [SerializeField] private GameObject mainGameCanvas;
 
     // --- Поля для Разрешения Экрана ---
@@ -30,15 +27,7 @@ public class MenuManager : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+       
     }
 
     void Start()

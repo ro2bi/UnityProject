@@ -74,6 +74,26 @@ public class SoundManager : MonoBehaviour
         Debug.Log("Громкость музыки установлена на: " + finalVolume);
     }
 
+    public void IncreaseMusicVolume(float step = 0.05f)
+    {
+        float current = PlayerPrefs.GetFloat("musicVolume", 1f);
+        current += step;
+
+        if (current > 1f) current = 1f;    // ограничиваем максимумом
+
+        SetMusicVolume(current);
+    }
+
+    public void DecreaseMusicVolume(float step = 0.05f)
+    {
+        float current = PlayerPrefs.GetFloat("musicVolume", 1f);
+        current -= step;
+
+        if (current < 0f) current = 0f;    // ограничиваем минимумом
+
+        SetMusicVolume(current);
+    }
+
     // Измените ваш существующий ChangeMusicVolume:
     public void ChangeMusicVolume(float _change)
     {
