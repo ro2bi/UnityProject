@@ -20,39 +20,45 @@ public class PlayerPickUp : MonoBehaviour
 
     void TryPickUp()
     {
-        Vector2 rayOrigin = transform.position;
-        Vector2 rayDirection = pickupDirection;
+        Vector2 direction = transform.localScale.x > 0 ? Vector2.right : Vector2.left;
 
-        // Визуализация луча для отладки
-        Debug.DrawRay(rayOrigin, rayDirection * pickupDistance, Color.green, 0.5f);
+        // Старт луча немного впереди игрока
+        Vector2 rayOrigin = (Vector2)transform.position + direction * 0.6f;
 
-        RaycastHit2D hit = Physics2D.Raycast(rayOrigin, rayDirection, pickupDistance);
+        Debug.DrawRay(rayOrigin, direction * pickupDistance, Color.green, 0.5f);
 
-        if (hit.collider != null)
-        {
-            Debug.Log($"Hit: {hit.collider.name}");
+        RaycastHit2D hit = Physics2D.Raycast(rayOrigin, direction, pickupDistance, LayerMask.GetMask("Default"));
 
-            if (hit.collider.TryGetComponent(out WeightObject obj))
-            {
-                Debug.Log($"Picking up: {obj.name}");
-                currentObject = obj;
-                obj.transform.SetParent(holdPoint);
-                obj.transform.localPosition = Vector3.zero;
-
-                Rigidbody2D rb = obj.GetComponent<Rigidbody2D>();
-                if (rb != null)
-                    rb.simulated = false;
-            }
-            else
-            {
-                Debug.Log("Object doesn't have WeightObject component");
-            }
-        }
-        else
+        if (!hit.collider)
         {
             Debug.Log("Raycast didn't hit anything");
+            return;
         }
+
+        Debug.Log($"Hit: {hit.collider.name}");
+
+        WeightObject obj =
+            hit.collider.GetComponent<WeightObject>() ??
+            hit.collider.GetComponentInParent<WeightObject>() ??
+            hit.collider.GetComponentInChildren<WeightObject>();
+
+        if (obj == null)
+        {
+            Debug.Log("Object doesn't have WeightObject component");
+            return;
+        }
+
+        currentObject = obj;
+
+        obj.transform.SetParent(holdPoint);
+        obj.transform.localPosition = Vector3.zero;
+
+        Rigidbody2D rb = obj.GetComponent<Rigidbody2D>();
+        if (rb) rb.simulated = false;
+
+        Debug.Log("Picked up!");
     }
+
 
     void Drop()
     {

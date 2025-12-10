@@ -26,7 +26,7 @@ public class ScaleController : MonoBehaviour
     void UpdateScale()
     {
         float effectiveWeight = currentObj.weight * gravityValue;
-        weightText.text = $"Вес: {effectiveWeight}";
+        weightText.text = $"Bага: {effectiveWeight} H";
 
         button.CheckWeight(effectiveWeight);
     }
