@@ -16,7 +16,8 @@ public class GravitySliderFrames : MonoBehaviour
         for (int i = 0; i < frames.Length; i++)
             frames[i].SetActive(i == currentIndex);
 
-        scale.SetGravity(gValues[currentIndex]);
+        scale.SetGravity(gValues[currentIndex]); 
+        Debug.Log($"g = {gValues[currentIndex]}");
     }
 
     public void IncreaseG()

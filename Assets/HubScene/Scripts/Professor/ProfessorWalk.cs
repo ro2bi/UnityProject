@@ -4,274 +4,313 @@ using TMPro;
 
 public class ProfessorWalker : MonoBehaviour
 {
-    Animator anim;
-
-    [Header("Точки маршруту")]
+    [Header("Рух")]
     public Transform[] points;
     public float speed = 1f;
 
     [Header("Анімації")]
-    public string disappearAnimation = "Disappear";
+    public Animator anim;
     public string walkHorizontalParam = "Speed";
-
-    [Header("Очікування перед зникненням")]
-    public float waitBeforeDisappear = 1.5f;
-
-    [Header("Діалоги для кожної точки")]
-    [Tooltip("Кожен елемент - це масив фраз для однієї точки")]
-    public DialogueSet[] dialoguesForPoints;
-
-    [Header("Посилання на TextDisplay")]
-    public GameObject textDisplayObject;
-    public TextMeshProUGUI textMeshPro; // TMP компонент для тексту
-    public CanvasGroup canvasGroup; // Для fade ефекту
-
-    [Header("Налаштування fade")]
-    public float fadeInDuration = 0.5f;
-    public float fadeOutDuration = 0.3f;
-
-    private int currentPoint = 0;
-    private bool isWaiting = true;
-    private bool playerInside = false;
-    private bool isDisappearing = false;
-    private bool isShowingDialogue = false;
-
-    private Coroutine dialogueCoroutine;
+    public string disappearAnimation = "Disappear";
+    public string appearAnimation = "Appear";
+    [Tooltip("Тривалість анімації зникнення")]
+    public float disappearDuration = 0.7f;
 
     [System.Serializable]
     public class DialogueSet
     {
         [TextArea(2, 5)]
         public string[] phrases;
-        [Tooltip("Час показу для кожної фрази (в секундах)")]
         public float[] displayTimes;
     }
 
-    private void Start()
+    [System.Serializable]
+    public class HintSet
     {
-        anim = GetComponent<Animator>();
-
-        // Якщо CanvasGroup не призначений, спробуємо знайти або створити
-        if (canvasGroup == null && textDisplayObject != null)
-        {
-            canvasGroup = textDisplayObject.GetComponent<CanvasGroup>();
-            if (canvasGroup == null)
-            {
-                canvasGroup = textDisplayObject.AddComponent<CanvasGroup>();
-            }
-        }
-
-        // Ховаємо панельку на старті
-        if (textDisplayObject != null)
-        {
-            textDisplayObject.SetActive(false);
-        }
+        [TextArea(2, 5)]
+        public string[] hints;
     }
 
-    void Update()
+    [Header("Діалоги для кожної точки")]
+    public DialogueSet[] dialoguesForPoints;
+
+    [Header("Підказки для кожної точки")]
+    public HintSet[] hintsForPoints;
+
+    [Header("UI елементи")]
+    public GameObject textDisplayObject; // табличка внизу екрану для діалогів під час руху
+    public TextMeshProUGUI textMeshPro;
+    public CanvasGroup canvasGroup;
+
+    [Header("Табличка підказок біля професора")]
+    public GameObject hintBubbleObject; // табличка що буде біля професора
+    public TextMeshProUGUI hintBubbleText;
+    public CanvasGroup hintBubbleCanvasGroup;
+
+    [Header("Підказки на фінальній точці")]
+    [TextArea(2, 5)] public string repeatHint1 = "Щоб пройти рівень, зроби перше завдання...";
+    [TextArea(2, 5)] public string repeatHint2 = "Тепер зверни увагу на друге завдання...";
+    public int hintLevel = 2; // рівень, на якому активні підказки
+
+    [Header("Логіка рівнів")]
+    public int currentLevel = 1;
+
+    private int currentPoint = 0;
+    private bool isWaiting = true;
+    private bool reachedFinalPoint = false;
+    private int hintStep = 0;
+    private bool playerInside = false;
+    private int currentHintIndex = 0;
+    private bool isAtPoint = false;
+
+    private Coroutine dialogueCoroutine;
+
+    private void Start()
+    {
+        if (anim == null) anim = GetComponent<Animator>();
+        if (canvasGroup == null && textDisplayObject != null)
+            canvasGroup = textDisplayObject.GetComponent<CanvasGroup>();
+        if (hintBubbleCanvasGroup == null && hintBubbleObject != null)
+            hintBubbleCanvasGroup = hintBubbleObject.GetComponent<CanvasGroup>();
+
+        if (textDisplayObject != null)
+            textDisplayObject.SetActive(false);
+
+        if (hintBubbleObject != null)
+            hintBubbleObject.SetActive(false);
+    }
+
+    private void Update()
     {
         if (points.Length == 0) return;
-        if (isDisappearing) return;
 
-        // Очікування взаємодії
-        if (isWaiting)
+        if (reachedFinalPoint)
         {
-            anim.SetFloat(walkHorizontalParam, 0);
-            if (playerInside && Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.INTERACT)))
-            {
-                isWaiting = false;
-                // Запускаємо послідовний показ фраз
-                StartDialogueSequence();
-            }
+            WaitForInteraction();
             return;
         }
 
+        // Якщо професор стоїть на точці і чекає взаємодії
+        if (isAtPoint && playerInside && Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.INTERACT)))
+        {
+            ShowNextHintAtPoint();
+            return;
+        }
+
+        // Якщо професор чекає початку руху
+        if (isWaiting && !isAtPoint && playerInside && Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.INTERACT)))
+        {
+            isWaiting = false;
+            StartDialogueForPoint(currentPoint);
+        }
+
+        if (!isWaiting && !isAtPoint)
+        {
+            MoveAlongPath();
+        }
+    }
+
+    private void MoveAlongPath()
+    {
         Transform target = points[currentPoint];
-        Vector3 direction = (target.position - transform.position).normalized;
-        transform.position += direction * speed * Time.deltaTime;
+        Vector3 dir = (target.position - transform.position).normalized;
+        transform.position += dir * speed * Time.deltaTime;
 
-        anim.SetFloat(walkHorizontalParam, Mathf.Abs(direction.x) > 0.01f ? speed : 0);
+        anim.SetFloat(walkHorizontalParam, Mathf.Abs(dir.x));
 
-        if (direction.x > 0.1f)
-            transform.localScale = new Vector3(1, 1, 1);
-        else if (direction.x < -0.1f)
-            transform.localScale = new Vector3(-1, 1, 1);
+        if (dir.x > 0.01f) transform.localScale = new Vector3(1, 1, 1);
+        else if (dir.x < -0.01f) transform.localScale = new Vector3(-1, 1, 1);
 
         // Досягнення точки
         if (Vector3.Distance(transform.position, target.position) < 0.1f)
         {
-            // Зупиняємо діалог
-            if (dialogueCoroutine != null)
+            StopDialogue();
+            anim.SetFloat(walkHorizontalParam, 0);
+
+            // Перевіряємо чи є підказки для цієї точки
+            if (hintsForPoints != null && currentPoint < hintsForPoints.Length &&
+                hintsForPoints[currentPoint].hints.Length > 0)
             {
-                StopCoroutine(dialogueCoroutine);
-                dialogueCoroutine = null;
+                isAtPoint = true;
+                currentHintIndex = 0;
+                // Не показуємо підказку автоматично, чекаємо натискання клавіші
             }
-
-            HideDialogue();
-
-            // Остання точка → чекаємо → зникаємо
-            if (currentPoint == points.Length - 1)
+            else
             {
-                StartCoroutine(DisappearAfterDelay());
-                return;
+                // Якщо підказок немає, переходимо до наступної точки
+                MoveToNextPoint();
             }
+        }
+    }
 
+    private void ShowNextHintAtPoint()
+    {
+        if (!isAtPoint) return;
+
+        HintSet hintSet = hintsForPoints[currentPoint];
+
+        if (currentHintIndex < hintSet.hints.Length)
+        {
+            // Показуємо наступну підказку
+            ShowHintBubble(hintSet.hints[currentHintIndex]);
+            currentHintIndex++;
+        }
+        else
+        {
+            // Всі підказки показані, переходимо далі
+            HideHintBubble();
+            isAtPoint = false;
+            MoveToNextPoint();
+        }
+    }
+
+    private void MoveToNextPoint()
+    {
+        currentPoint++;
+        if (currentPoint >= points.Length)
+        {
+            reachedFinalPoint = true;
             isWaiting = true;
-            currentPoint++;
-            if (currentPoint >= points.Length)
-                currentPoint = 0;
+        }
+        else
+        {
+            isWaiting = true;
         }
     }
 
-    private void StartDialogueSequence()
+    private void ShowHintBubble(string hint)
     {
-        if (textDisplayObject == null || dialoguesForPoints == null) return;
-        if (currentPoint >= dialoguesForPoints.Length) return;
+        if (hintBubbleObject == null || hintBubbleText == null) return;
 
-        DialogueSet currentSet = dialoguesForPoints[currentPoint];
-        if (currentSet == null || currentSet.phrases == null || currentSet.phrases.Length == 0) return;
+        hintBubbleObject.SetActive(true);
+        hintBubbleText.text = hint;
 
-        dialogueCoroutine = StartCoroutine(ShowPhrasesSequentially(currentSet.phrases));
+        if (hintBubbleCanvasGroup != null)
+            hintBubbleCanvasGroup.alpha = 1f;
     }
 
-    private IEnumerator ShowPhrasesSequentially(string[] phrases)
+    private void HideHintBubble()
     {
-        isShowingDialogue = true;
+        if (hintBubbleObject == null) return;
 
-        // Якщо TMP не призначений, спробуємо знайти
-        if (textMeshPro == null && textDisplayObject != null)
+        if (hintBubbleCanvasGroup != null)
+            hintBubbleCanvasGroup.alpha = 0f;
+
+        hintBubbleObject.SetActive(false);
+    }
+
+    private void StartDialogueForPoint(int pointIndex)
+    {
+        if (dialogueCoroutine != null) StopCoroutine(dialogueCoroutine);
+
+        if (dialoguesForPoints != null && pointIndex < dialoguesForPoints.Length)
         {
-            textMeshPro = textDisplayObject.GetComponentInChildren<TextMeshProUGUI>();
+            DialogueSet set = dialoguesForPoints[pointIndex];
+            if (set != null && set.phrases.Length > 0)
+                dialogueCoroutine = StartCoroutine(ShowPhrasesSequentially(set));
         }
+    }
 
-        if (textMeshPro == null)
+    private IEnumerator ShowPhrasesSequentially(DialogueSet set)
+    {
+        if (textDisplayObject != null) textDisplayObject.SetActive(true);
+        for (int i = 0; i < set.phrases.Length; i++)
         {
-            Debug.LogError("TextMeshProUGUI не знайдено! Перетягни TMP компонент в поле textMeshPro");
-            yield break;
-        }
-
-        DialogueSet currentSet = dialoguesForPoints[currentPoint];
-
-        for (int i = 0; i < phrases.Length; i++)
-        {
-            string phrase = phrases[i];
-            if (string.IsNullOrEmpty(phrase)) continue;
-
-            // Fade out (якщо не перша фраза)
-            if (i > 0 && canvasGroup != null)
-            {
-                yield return StartCoroutine(FadeOut());
-            }
-
-            // ВАЖЛИВО: Змінюємо текст ПОКИ панелька прозора
-            textMeshPro.text = phrase;
-
-            // Активуємо панельку (якщо перша фраза)
-            if (i == 0 && textDisplayObject != null)
-            {
-                textDisplayObject.SetActive(true);
-            }
-
-            // Fade in
-            if (canvasGroup != null)
-            {
-                yield return StartCoroutine(FadeIn());
-            }
-
-            Debug.Log($"Показую фразу: {phrase}");
-
-            // Отримуємо час для поточної фрази
-            float waitTime = 3f; // час за замовчуванням
-            if (currentSet.displayTimes != null && i < currentSet.displayTimes.Length)
-            {
-                waitTime = currentSet.displayTimes[i];
-            }
-
-            // Чекаємо поки фраза відображається
+            if (textMeshPro != null) textMeshPro.text = set.phrases[i];
+            float waitTime = (set.displayTimes != null && i < set.displayTimes.Length) ? set.displayTimes[i] : 3f;
             yield return new WaitForSeconds(waitTime);
         }
-
-        // Fade out після останньої фрази
-        if (canvasGroup != null)
-        {
-            yield return StartCoroutine(FadeOut());
-        }
-
-        // Деактивуємо панельку
-        HideDialogue();
+        if (textDisplayObject != null) textDisplayObject.SetActive(false);
     }
 
-    private IEnumerator FadeIn()
+    private void StopDialogue()
     {
-        float elapsed = 0f;
-        while (elapsed < fadeInDuration)
-        {
-            elapsed += Time.deltaTime;
-            canvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / fadeInDuration);
-            yield return null;
-        }
-        canvasGroup.alpha = 1f;
-    }
-
-    private IEnumerator FadeOut()
-    {
-        float elapsed = 0f;
-        float startAlpha = canvasGroup.alpha;
-        while (elapsed < fadeOutDuration)
-        {
-            elapsed += Time.deltaTime;
-            canvasGroup.alpha = Mathf.Lerp(startAlpha, 0f, elapsed / fadeOutDuration);
-            yield return null;
-        }
-        canvasGroup.alpha = 0f;
-    }
-
-    private void HideDialogue()
-    {
-        if (textDisplayObject != null)
-        {
-            textDisplayObject.SetActive(false);
-        }
-        if (textMeshPro != null)
-        {
-            textMeshPro.text = "";
-        }
-        if (canvasGroup != null)
-        {
-            canvasGroup.alpha = 0f;
-        }
-        isShowingDialogue = false;
-    }
-
-    private IEnumerator DisappearAfterDelay()
-    {
-        isDisappearing = true;
-        anim.SetFloat(walkHorizontalParam, 0);
-
-        // Зупиняємо діалог
         if (dialogueCoroutine != null)
         {
             StopCoroutine(dialogueCoroutine);
             dialogueCoroutine = null;
         }
+        if (textDisplayObject != null) textDisplayObject.SetActive(false);
+    }
 
-        HideDialogue();
+    private void WaitForInteraction()
+    {
+        anim.SetFloat(walkHorizontalParam, 0);
+        if (playerInside && currentLevel == hintLevel && Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.INTERACT)))
+        {
+            ShowNextHint();
+        }
+    }
 
-        yield return new WaitForSeconds(waitBeforeDisappear);
-        anim.Play(disappearAnimation);
+    private void ShowNextHint()
+    {
+        if (hintBubbleText == null || hintBubbleObject == null) return;
+        hintBubbleObject.SetActive(true);
+        if (hintStep == 0)
+        {
+            hintBubbleText.text = repeatHint1;
+            hintStep = 1;
+        }
+        else if (hintStep == 1)
+        {
+            hintBubbleText.text = repeatHint2;
+            hintStep = 2;
+        }
+        if (hintBubbleCanvasGroup != null) hintBubbleCanvasGroup.alpha = 1f;
+    }
 
-        enabled = false;
+    public void HideHint()
+    {
+        HideHintBubble();
+    }
+
+    public void TeleportProfessor(Vector3 newPosition)
+    {
+        StartCoroutine(TeleportRoutine(newPosition));
+    }
+
+    private IEnumerator TeleportRoutine(Vector3 newPos)
+    {
+        PlayDisappearAnimation();
+        yield return new WaitForSeconds(disappearDuration);
+
+        transform.position = newPos;
+
+        if (!string.IsNullOrEmpty(appearAnimation))
+        {
+            anim.Play(appearAnimation);
+            yield return new WaitForSeconds(0.7f);
+        }
+
+        reachedFinalPoint = true;
+        isWaiting = true;
+        hintStep = 0;
+        HideHint();
+    }
+
+    public void PlayDisappearAnimation()
+    {
+        if (!string.IsNullOrEmpty(disappearAnimation) && anim != null)
+            anim.Play(disappearAnimation);
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
-            playerInside = true;
+        if (other.CompareTag("Player")) playerInside = true;
     }
 
     private void OnTriggerExit2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
-            playerInside = false;
+        if (other.CompareTag("Player")) playerInside = false;
+    }
+
+    public void ResumeWalking()
+    {
+        if (reachedFinalPoint)
+        {
+            reachedFinalPoint = false;
+            isWaiting = false;
+            StartDialogueForPoint(currentPoint);
+        }
     }
 }
