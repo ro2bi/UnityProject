@@ -1,32 +1,27 @@
 ﻿using UnityEngine;
-using System.Collections;
 
 public class ButtonController : MonoBehaviour
 {
+    [Header("Button visuals")]
     public GameObject normalButton;
     public GameObject pressedButton;
     public GameObject halfBrokenButton;
 
-    [Header("Objects to disable when pressed")]
+    [Header("Objects to DISABLE when pressed")]
     public GameObject[] disableOnPress;
+
+    [Header("Objects to ENABLE when pressed")]
+    public GameObject[] enableOnPress;
 
     [Header("Force thresholds")]
     public float minForceToPress = 20f;
     public float breakForce = 200f;
 
-    [Header("Ссылка на профессора")]
-    public ProfessorWalker professor;
+    [Header("Level")]
+    public LevelManager levelManager;
 
-    [Header("Нова позиція професора після 2-го рівня")]
-    public Transform professorNewPosition;
-
-    [Header("Гравець")]
-    public Transform player;
-    public Collider2D roomBoundary; // Триггер кімнати
-
-    [Header("Логіка рівнів")]
-    public int currentLevel = 1; // Початковий рівень
-    private bool level2Started = false;
+    [Header("Professor teleport")]
+    public Transform nextProfessorPosition;
 
     private bool isBroken = false;
     private bool isPressed = false;
@@ -36,38 +31,14 @@ public class ButtonController : MonoBehaviour
         ShowNormal();
     }
 
-    private void Update()
-    {
-        if (isPressed && !level2Started)
-        {
-            // Перевіряємо чи гравець вийшов за межі кімнати
-            if (!roomBoundary.bounds.Contains(player.position))
-            {
-                StartCoroutine(StartLevel2Routine());
-            }
-        }
-    }
-
     public void CheckWeight(float force)
     {
-        Debug.Log("Force = " + force);
-
         if (isBroken)
         {
             if (force >= minForceToPress)
-            {
-                if (!isPressed)
-                {
-                    isPressed = true;
-                    DisableObjects();
-                }
                 ShowPressed();
-            }
             else
-            {
-                isPressed = false;
                 ShowHalfBroken();
-            }
             return;
         }
 
@@ -83,16 +54,16 @@ public class ButtonController : MonoBehaviour
             isPressed = false;
             ShowNormal();
         }
-        else if (force >= minForceToPress && force < breakForce)
+        else if (force < breakForce)
         {
             if (!isPressed)
             {
                 isPressed = true;
-                DisableObjects();
+                ApplyPressEffects();
             }
             ShowPressed();
         }
-        else if (force >= breakForce)
+        else
         {
             isBroken = true;
             isPressed = false;
@@ -100,54 +71,41 @@ public class ButtonController : MonoBehaviour
         }
     }
 
-    void DisableObjects()
+    private void ApplyPressEffects()
     {
+        // ❌ деактивуємо обʼєкти (тут стіна ВИМИКАЄТЬСЯ)
         foreach (var obj in disableOnPress)
+            if (obj != null) obj.SetActive(false);
+
+        // ✅ активуємо обʼєкти (якщо щось інше потрібно)
+        foreach (var obj in enableOnPress)
+            if (obj != null) obj.SetActive(true);
+
+        // ✅ ВИКЛИКАЄМО ТЕЛЕПОРТАЦІЮ ПРОФЕСОРА
+        if (levelManager != null && nextProfessorPosition != null)
         {
-            if (obj != null)
-            {
-                obj.SetActive(false);
-            }
+            levelManager.OnLevelPassed(nextProfessorPosition.position);
         }
     }
 
-    void ShowNormal()
+    private void ShowNormal()
     {
         normalButton.SetActive(true);
         pressedButton.SetActive(false);
         halfBrokenButton.SetActive(false);
     }
 
-    void ShowPressed()
+    private void ShowPressed()
     {
         normalButton.SetActive(false);
         pressedButton.SetActive(true);
         halfBrokenButton.SetActive(false);
     }
 
-    void ShowHalfBroken()
+    private void ShowHalfBroken()
     {
         normalButton.SetActive(false);
         pressedButton.SetActive(false);
         halfBrokenButton.SetActive(true);
-    }
-
-    private IEnumerator StartLevel2Routine()
-    {
-        level2Started = true;
-        currentLevel = 2;
-        Debug.Log("Розпочато 2-й рівень!");
-
-        if (professor != null && professorNewPosition != null)
-        {
-            // 1) Викликаємо анімацію зникнення
-            professor.PlayDisappearAnimation();
-
-            // 2) Чекаємо поки анімація закінчиться
-            yield return new WaitForSeconds(professor.disappearDuration);
-
-            // 3) Телепортуємо професора
-            professor.TeleportProfessor(professorNewPosition.position);
-        }
     }
 }

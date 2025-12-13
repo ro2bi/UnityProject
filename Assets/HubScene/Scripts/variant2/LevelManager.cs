@@ -3,91 +3,36 @@ using System.Collections;
 
 public class LevelManager : MonoBehaviour
 {
-    [Header("Player & Boundaries")]
-    public Transform player;
-    public Collider2D roomBoundary;
+    public static LevelManager Instance;
+
+    public ProfessorWalker professor;
     public GameObject closingWall;
 
-    [Header("Professor")]
-    public ProfessorWalker professor;
-    public Transform[] levelPositions; // позиції професора для кожного рівня
+    private bool levelPassed = false;
 
-    [Header("Button (тільки для рівня 1)")]
-    public ButtonController button;
-
-    private int currentLevel = 0;
-    private bool levelRunning = false;
-
-    private void Start()
+    private void Awake()
     {
-        if (closingWall != null)
-            closingWall.SetActive(true);
-
-        StartCoroutine(StartLevelRoutine());
+        Instance = this;
     }
 
-    private void Update()
+    public void OnLevelPassed(Vector3 nextProfessorPos)
     {
-        if (levelRunning)
-        {
-            // Гравець вийшов за межі кімнати → рівень закінчується
-            if (!roomBoundary.bounds.Contains(player.position))
-            {
-                StartCoroutine(EndLevelRoutine());
-            }
-        }
+        if (levelPassed) return;
+        levelPassed = true;
+
+        // ✅ Стіна вимикається тут
+        closingWall.SetActive(false);
+
+        StartCoroutine(LevelEndRoutine(nextProfessorPos));
     }
 
-    // ───────────────────────────────────────────────
-    // СТАРТ РІВНЯ
-    // ───────────────────────────────────────────────
-    private IEnumerator StartLevelRoutine()
+    private IEnumerator LevelEndRoutine(Vector3 pos)
     {
-        levelRunning = false;
+        yield return professor.DisappearTeleportAppear(pos);
 
-        // Активуємо стіну
-        if (closingWall != null)
-            closingWall.SetActive(true);
+        // ❌ НЕ активуємо стіну тут! Вона активується через LevelExitTrigger
+        // closingWall.SetActive(true); <- прибрано
 
-        // Телепортація професора
-        professor.TeleportInstant(levelPositions[currentLevel].position);
-
-        // Програти анімацію появи
-        yield return professor.PlayAppearRoutine();
-
-        // Підготувати професора до цього рівня
-        professor.PrepareForLevel(currentLevel);
-
-        levelRunning = true;
-        Debug.Log("▶ Старт рівня " + (currentLevel + 1));
-    }
-
-    // ───────────────────────────────────────────────
-    // КІНЕЦЬ РІВНЯ
-    // ───────────────────────────────────────────────
-    private IEnumerator EndLevelRoutine()
-    {
-        levelRunning = false;
-
-        if (closingWall != null)
-            closingWall.SetActive(false);
-
-        Debug.Log("■ Кінець рівня " + (currentLevel + 1));
-
-        // Професор зникає
-        yield return professor.PlayDisappearRoutine();
-
-        // Наступний рівень
-        currentLevel++;
-        if (currentLevel >= levelPositions.Length)
-            currentLevel = 0; // цикл
-
-        StartCoroutine(StartLevelRoutine());
-    }
-
-    // Для кнопки (якщо треба вручну завершити рівень)
-    public void ForceLevelEnd()
-    {
-        StartCoroutine(EndLevelRoutine());
+        levelPassed = false;
     }
 }
