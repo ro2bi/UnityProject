@@ -102,8 +102,16 @@ public class ProfessorWalker : MonoBehaviour
             hintBubble.SetActive(false);
 
         Segment s = segments[segmentIndex];
+
+        // ✅ Телепортуємо на початкову точку
         transform.position = s.startPoint.position;
 
+        // ✅ Запускаємо анімацію ходіння відразу
+        Vector3 dir = (s.endPoint.position - s.startPoint.position).normalized;
+        if (anim != null)
+            anim.SetFloat(speedParam, Mathf.Abs(dir.x));
+
+        // ✅ Запускаємо фрази (вони йдуть незалежно від гравця)
         if (phraseRoutine != null) StopCoroutine(phraseRoutine);
         phraseRoutine = StartCoroutine(ShowPhrases(s.walkPhrases));
     }
@@ -114,13 +122,21 @@ public class ProfessorWalker : MonoBehaviour
         Vector3 dir = (s.endPoint.position - transform.position).normalized;
         transform.position += dir * speed * Time.deltaTime;
 
-        anim.SetFloat(speedParam, Mathf.Abs(dir.x));
+        // ✅ Оновлюємо анімацію ходьби
+        if (anim != null)
+            anim.SetFloat(speedParam, Mathf.Abs(dir.x));
 
         if (Vector3.Distance(transform.position, s.endPoint.position) < 0.1f)
         {
             walking = false;
-            anim.SetFloat(speedParam, 0);
-            StopDialogue();
+
+            // ✅ Зупиняємо анімацію
+            if (anim != null)
+                anim.SetFloat(speedParam, 0);
+
+            // ✅ Закриваємо діалог якщо він ще активний
+            if (dialoguePanel != null)
+                dialoguePanel.SetActive(false);
 
             showingHints = true;
         }
@@ -128,6 +144,7 @@ public class ProfessorWalker : MonoBehaviour
 
     private IEnumerator ShowPhrases(TimedPhrase[] phrases)
     {
+        // ✅ Фрази показуються ЗАВЖДИ під час ходіння
         if (dialoguePanel != null)
             dialoguePanel.SetActive(true);
 
@@ -138,15 +155,7 @@ public class ProfessorWalker : MonoBehaviour
             yield return new WaitForSeconds(p.duration);
         }
 
-        if (dialoguePanel != null)
-            dialoguePanel.SetActive(false);
-    }
-
-    private void StopDialogue()
-    {
-        if (phraseRoutine != null)
-            StopCoroutine(phraseRoutine);
-
+        // ✅ Закриваємо панель після всіх фраз
         if (dialoguePanel != null)
             dialoguePanel.SetActive(false);
     }
@@ -182,20 +191,32 @@ public class ProfessorWalker : MonoBehaviour
         if (hintBubble != null)
             hintBubble.SetActive(false);
 
-        anim.Play(disappearAnim);
+        // ✅ Зупиняємо анімацію перед зникненням
+        if (anim != null)
+            anim.SetFloat(speedParam, 0);
+
+        // ✅ Анімація зникнення
+        if (anim != null)
+            anim.Play(disappearAnim);
         yield return new WaitForSeconds(disappearDuration);
 
+        // ✅ Телепорт
         transform.position = newPos;
 
-        anim.Play(appearAnim);
+        // ✅ Анімація появи
+        if (anim != null)
+            anim.Play(appearAnim);
         yield return new WaitForSeconds(0.5f);
 
+        // ✅ Переходимо до наступного сегмента
         segmentIndex++;
         if (segmentIndex >= segments.Length)
             segmentIndex = 0;
 
+        // ✅ Готові до взаємодії
         waitingForInteract = true;
         showingHints = false;
+        walking = false;
     }
 
     // ===================== TRIGGERS =====================
@@ -211,11 +232,8 @@ public class ProfessorWalker : MonoBehaviour
         {
             playerInside = false;
 
-            // ✅ Ховаємо UI коли гравець виходить
-            if (hintBubble != null)
-                hintBubble.SetActive(false);
-            if (dialoguePanel != null)
-                dialoguePanel.SetActive(false);
+            // ✅ НЕ закриваємо UI коли гравець виходить
+            // Фрази та підказки продовжують показуватися
         }
     }
 }
