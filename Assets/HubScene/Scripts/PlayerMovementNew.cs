@@ -1,78 +1,345 @@
-using UnityEngine;
-using System.Collections.Generic;
+п»їusing UnityEngine;
+using System.Collections;
 
 public class PlayerMovementNew : MonoBehaviour
 {
+    // =========================
+    // MOVEMENT
+    // =========================
+    [Header("Movement")]
     public float speed = 5f;
-    private Rigidbody2D rb;
-    private Vector2 moveInput;
-    private Animator anim; // Должен быть получен в Start()
 
+    // =========================
+    // VISUAL JUMP (TOP-DOWN)
+    // =========================
+    [Header("Jump Visual")]
+    public Transform visual;
+    public float defaultJumpHeight = 0.4f;
+    public float defaultJumpDuration = 0.35f;
+
+    private float currentJumpHeight;
+    private float currentJumpDuration;
+
+    // =========================
+    // GROUND CHECK
+    // =========================
+    [Header("Ground Check")]
+    public Transform groundCheck;
+    public float groundCheckRadius = 0.3f;
+    public LayerMask islandLayer;
+
+    // =========================
+    // FALL / DEATH
+    // =========================
+    [Header("Fall Settings")]
+    public float maxFallTime = 3f;
+    public float fallDepth = 1.5f;
+    public float deathAnimTime = 1.2f;
+    public float fallGravity = 2f;
+
+    // =========================
+    // CHECKPOINT
+    // =========================
+    [Header("Checkpoint")]
+    public AudioClip checkpointSound;
+
+    // =========================
+    // SORTING
+    // =========================
+    [Header("Sorting")]
+    public int normalSortingOrder = 1;
+    public int fallingSortingOrder = -1;
+
+    // =========================
+    // PRIVATE
+    // =========================
+    private Rigidbody2D rb;
+    private Animator anim;
+    private SpriteRenderer sprite;
+    private UIManagerNew uiManager;
+
+    private Vector2 moveInput;
+    private Vector2 jumpDirection;
+    private Vector2 lastMoveDirection;
+    private Vector2 fallVelocity;
+
+    private bool isJumping;
+    private bool isFalling;
+    private bool isDead;
+
+    private Vector3 visualStartPos;
+    private Vector3 lastSafePosition;
+
+    // =========================
+    // START
+    // =========================
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        anim = GetComponent<Animator>();
+        anim = GetComponentInChildren<Animator>();
+        sprite = visual.GetComponent<SpriteRenderer>();
+        uiManager = FindObjectOfType<UIManagerNew>();
+
+        rb.gravityScale = 0;
+        rb.freezeRotation = true;
+
+        visualStartPos = visual.localPosition;
+        sprite.sortingOrder = normalSortingOrder;
+
+        currentJumpHeight = defaultJumpHeight;
+        currentJumpDuration = defaultJumpDuration;
 
         KeybindManager.InitializeKeys();
+
+        // рџ”Ґ RESPAWN РџРћРЎР›Р• РџР•Р Р•Р—РђР“Р РЈР—РљР РЎР¦Р•РќР«
+        if (CheckpointData.HasCheckpoint)
+        {
+            transform.position = CheckpointData.LastCheckpointPosition;
+            lastSafePosition = transform.position;
+        }
+        else
+        {
+            lastSafePosition = transform.position;
+        }
     }
 
+    // =========================
+    // UPDATE
+    // =========================
     void Update()
     {
-        // === 1. Чтение Пользовательского Ввода через KeybindManager ===
+        if (isDead || isFalling) return;
 
-        float horizontal = 0f;
-        float vertical = 0f;
-
-        // Горизонтальное движение
-        if (Input.GetKey(KeybindManager.GetKey(KeybindManager.MOVE_RIGHT)))
+        if (!isJumping && !IsGroundUnder())
         {
-            horizontal = 1f;
+            StartFall();
+            return;
         }
-        else if (Input.GetKey(KeybindManager.GetKey(KeybindManager.MOVE_LEFT)))
+
+        float h = 0;
+        float v = 0;
+
+        if (Input.GetKey(KeybindManager.GetKey(KeybindManager.MOVE_RIGHT))) h = 1;
+        else if (Input.GetKey(KeybindManager.GetKey(KeybindManager.MOVE_LEFT))) h = -1;
+
+        if (Input.GetKey(KeybindManager.GetKey(KeybindManager.MOVE_FORWARD))) v = 1;
+        else if (Input.GetKey(KeybindManager.GetKey(KeybindManager.MOVE_BACKWARD))) v = -1;
+
+        moveInput = new Vector2(h, v).normalized;
+
+        if (moveInput != Vector2.zero)
+            lastMoveDirection = moveInput;
+
+        if (anim != null)
         {
-            horizontal = -1f;
+            anim.SetBool("IsMovingForward", v > 0);
+            anim.SetBool("IsMovingBackward", v < 0);
+            anim.SetBool("IsMovingRight", h > 0);
+            anim.SetBool("IsMovingLeft", h < 0);
         }
-        if (Input.GetKey(KeybindManager.GetKey(KeybindManager.MOVE_FORWARD))) 
+
+        if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.JUMP)))
         {
-            vertical = 1f;
-        }
-        else if (Input.GetKey(KeybindManager.GetKey(KeybindManager.MOVE_BACKWARD)))
-        {
-            vertical = -1f;
-        }
-        
-
-        // === 2. Обновление moveInput и Аниматора ===
-
-        moveInput.x = horizontal;
-        moveInput.y = vertical;
-        moveInput.Normalize();
-
-        // === Логика анимации (с использованием 4-х булевых параметров) ===
-
-        // 1. Движение вперед/вверх (W или клавиша Вперед)
-        anim.SetBool("IsMovingForward", vertical > 0);
-
-        // 2. Движение назад/вниз (S или клавиша Назад)
-        anim.SetBool("IsMovingBackward", vertical < 0);
-
-        // 3. Движение вправо (D или клавиша Вправо)
-        anim.SetBool("IsMovingRight", horizontal > 0);
-
-        // 4. Движение влево (A или клавиша Влево)
-        anim.SetBool("IsMovingLeft", horizontal < 0);
-
-
-        // === Проверка для INTERACT (пример использования) ===
-        if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.INTERACT)))
-        {
-            Debug.Log("Interact action triggered!");
-            // Вызов метода взаимодействия
+            if (!isJumping)
+            {
+                lastSafePosition = transform.position;
+                jumpDirection = moveInput;
+                StartCoroutine(JumpRoutine());
+            }
         }
     }
 
+    // =========================
+    // FIXED UPDATE
+    // =========================
     void FixedUpdate()
     {
-        rb.MovePosition(rb.position + moveInput * speed * Time.fixedDeltaTime);
+        if (isDead) return;
+
+        Vector2 dir;
+
+        if (isFalling)
+        {
+            fallVelocity.y -= fallGravity * Time.fixedDeltaTime;
+            dir = fallVelocity;
+        }
+        else
+        {
+            dir = isJumping ? jumpDirection : moveInput;
+        }
+
+        rb.MovePosition(rb.position + dir * speed * Time.fixedDeltaTime);
+    }
+
+    // =========================
+    // JUMP
+    // =========================
+    IEnumerator JumpRoutine()
+    {
+        isJumping = true;
+        anim?.SetTrigger("Jump");
+
+        float half = currentJumpDuration / 2f;
+        float t = 0;
+
+        // рџ‘† Р’Р—Р›РЃРў
+        while (t < half)
+        {
+            t += Time.deltaTime;
+            visual.localPosition = visualStartPos + Vector3.up *
+                Mathf.Lerp(0, currentJumpHeight, t / half);
+            yield return null;
+        }
+
+        // рџ‘‡ РџР РР—Р•РњР›Р•РќРР•
+        t = 0;
+        while (t < half)
+        {
+            t += Time.deltaTime;
+            visual.localPosition = visualStartPos + Vector3.up *
+                Mathf.Lerp(currentJumpHeight, 0, t / half);
+            yield return null;
+        }
+
+        visual.localPosition = visualStartPos;
+        isJumping = false;
+
+        if (!IsGroundUnder())
+            StartFall();
+    }
+
+    // =========================
+    // START FALL
+    // =========================
+    void StartFall()
+    {
+        if (isFalling) return;
+
+        fallVelocity = lastMoveDirection.normalized;
+        sprite.sortingOrder = fallingSortingOrder;
+        StartCoroutine(FallRoutine());
+    }
+
+    // =========================
+    // FALL
+    // =========================
+    IEnumerator FallRoutine()
+    {
+        isFalling = true;
+        anim?.SetTrigger("Fall");
+
+        float timer = 0;
+
+        while (timer < maxFallTime)
+        {
+            timer += Time.deltaTime;
+
+            float y = Mathf.Lerp(0, -fallDepth, timer / maxFallTime);
+            visual.localPosition = visualStartPos + Vector3.up * y;
+
+            if (IsGroundUnder())
+            {
+                anim?.SetTrigger("Land");
+                EndFall();
+                yield break;
+            }
+
+            yield return null;
+        }
+
+        yield return StartCoroutine(DeathRoutine());
+    }
+
+    // =========================
+    // DEATH
+    // =========================
+    IEnumerator DeathRoutine()
+    {
+        isDead = true;
+        anim?.SetTrigger("Death");
+
+        yield return new WaitForSeconds(deathAnimTime);
+
+        if (CheckpointData.HasCheckpoint)
+            uiManager.ShowDeathScreen();
+        else
+            uiManager.GameOver();
+    }
+
+    // =========================
+    // END FALL
+    // =========================
+    void EndFall()
+    {
+        visual.localPosition = visualStartPos;
+        sprite.sortingOrder = normalSortingOrder;
+        isFalling = false;
+        fallVelocity = Vector2.zero;
+    }
+
+    // =========================
+    // GROUND CHECK
+    // =========================
+    bool IsGroundUnder()
+    {
+        Collider2D[] hits = Physics2D.OverlapCircleAll(
+            groundCheck.position,
+            groundCheckRadius,
+            islandLayer
+        );
+
+        foreach (var hit in hits)
+        {
+            if (hit.gameObject != gameObject)
+                return true;
+        }
+        return false;
+    }
+
+    // =========================
+    // CHECKPOINT TRIGGER
+    // =========================
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.CompareTag("checkpoint"))
+        {
+            CheckpointData.LastCheckpointPosition = collision.transform.position;
+            CheckpointData.HasCheckpoint = true;
+
+            lastSafePosition = collision.transform.position;
+
+            if (checkpointSound != null && SoundManager.instance != null)
+                SoundManager.instance.PlaySound(checkpointSound);
+
+            collision.GetComponent<Collider2D>().enabled = false;
+            collision.GetComponent<Animator>()?.SetTrigger("appear");
+
+            Debug.Log("рџџў CHECKPOINT SAVED");
+        }
+    }
+
+    // =========================
+    // JUMP ZONE SUPPORT
+    // =========================
+    public void SetJumpParameters(float height, float duration)
+    {
+        currentJumpHeight = height;
+        currentJumpDuration = duration;
+    }
+
+    public void ResetJumpParameters()
+    {
+        currentJumpHeight = defaultJumpHeight;
+        currentJumpDuration = defaultJumpDuration;
+    }
+
+    // =========================
+    // GIZMOS
+    // =========================
+    private void OnDrawGizmos()
+    {
+        if (groundCheck == null) return;
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
     }
 }

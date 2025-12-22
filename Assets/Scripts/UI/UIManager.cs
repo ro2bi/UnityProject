@@ -1,15 +1,19 @@
-using UnityEngine;
+п»їusing UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
 
-public class UIManager : MonoBehaviour
+public class UIManagerNew : MonoBehaviour
 {
-    public static UIManager Instance { get; private set; }
+    public static UIManagerNew Instance { get; private set; }
 
     [Header("Game Over")]
     [SerializeField] private GameObject gameOverScreen;
     [SerializeField] private AudioClip gameOverSound;
+
+    [Header("Death Screen (Checkpoint)")]
+    [SerializeField] private GameObject deathScreen;
+    [SerializeField] private AudioClip deathSound;
 
     [Header("Pause")]
     [SerializeField] private GameObject pauseScreen;
@@ -17,9 +21,11 @@ public class UIManager : MonoBehaviour
     [Header("Interaction Prompt")]
     [SerializeField] private TextMeshProUGUI interactionPromptText;
 
+    private PlayerMovementNew player;
+
     private void Awake()
     {
-        // Настройка Singleton
+        // РќР°СЃС‚СЂРѕР№РєР° Singleton
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -29,10 +35,16 @@ public class UIManager : MonoBehaviour
             Instance = this;
         }
 
+        player = FindObjectOfType<PlayerMovementNew>();
+
         gameOverScreen.SetActive(false);
         pauseScreen.SetActive(false);
 
-        // НОВОЕ: Скрываем текст взаимодействия при старте
+        // рџ‘‡ РќРћР’РћР•: РЎРєСЂС‹РІР°РµРј СЌРєСЂР°РЅ СЃРјРµСЂС‚Рё
+        if (deathScreen != null)
+            deathScreen.SetActive(false);
+
+        // РЎРєСЂС‹РІР°РµРј С‚РµРєСЃС‚ РІР·Р°РёРјРѕРґРµР№СЃС‚РІРёСЏ РїСЂРё СЃС‚Р°СЂС‚Рµ
         if (interactionPromptText != null)
         {
             interactionPromptText.gameObject.SetActive(false);
@@ -40,8 +52,9 @@ public class UIManager : MonoBehaviour
     }
 
     #region Interaction Prompt Functions
-
-    //Показать подсказку взаимодействия с заданным текстом.</summary>
+    /// <summary>
+    /// РџРѕРєР°Р·Р°С‚СЊ РїРѕРґСЃРєР°Р·РєСѓ РІР·Р°РёРјРѕРґРµР№СЃС‚РІРёСЏ СЃ Р·Р°РґР°РЅРЅС‹Рј С‚РµРєСЃС‚РѕРј.
+    /// </summary>
     public static void ShowInteractionPrompt(string textToShow)
     {
         if (Instance != null && Instance.interactionPromptText != null)
@@ -51,7 +64,9 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    //Скрыть подсказку взаимодействия.
+    /// <summary>
+    /// РЎРєСЂС‹С‚СЊ РїРѕРґСЃРєР°Р·РєСѓ РІР·Р°РёРјРѕРґРµР№СЃС‚РІРёСЏ.
+    /// </summary>
     public static void HideInteractionPrompt()
     {
         if (Instance != null && Instance.interactionPromptText != null)
@@ -59,46 +74,75 @@ public class UIManager : MonoBehaviour
             Instance.interactionPromptText.gameObject.SetActive(false);
         }
     }
-
     #endregion
 
-    #region Game Over Functions
-    //Game over function
+    #region Death & Game Over Functions
+    /// <summary>
+    /// рџ’Ђ Р­РљР РђРќ РЎРњР•Р РўР (РµСЃС‚СЊ С‡РµРєРїРѕРёРЅС‚) вЂ” РїРѕРєР°Р·С‹РІР°РµС‚ РєРЅРѕРїРєСѓ Retry
+    /// </summary>
+    public void ShowDeathScreen()
+    {
+        if (deathScreen != null)
+        {
+            deathScreen.SetActive(true);
+            Time.timeScale = 0f; // РЎС‚Р°РІРёРј РёРіСЂСѓ РЅР° РїР°СѓР·Сѓ
+
+            if (deathSound != null)
+                SoundManager.instance?.PlaySound(deathSound);
+        }
+    }
+
+    
+
+    /// <summary>
+    /// в пёЏ GAME OVER (РЅРµС‚ С‡РµРєРїРѕРёРЅС‚Р°) вЂ” РїРѕРєР°Р·С‹РІР°РµС‚ СЌРєСЂР°РЅ Game Over
+    /// </summary>
     public void GameOver()
     {
         gameOverScreen.SetActive(true);
-        SoundManager.instance.PlaySound(gameOverSound);
-    }
+        Time.timeScale = 0f;
 
+        if (gameOverSound != null)
+            SoundManager.instance?.PlaySound(gameOverSound);
+    }
+    #endregion
+
+    #region Scene Management
     private void Update()
     {
         if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.TOMENU)))
         {
-            //If pause screen already active unpause and viceversa
+            // If pause screen already active unpause and viceversa
             PauseGame(!pauseScreen.activeInHierarchy);
         }
     }
 
-    //Restart level
-    public void Restart()
+    /// <summary>
+    /// Restart level
+    /// </summary>
+    public void Retry()
     {
+        Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
-    //Activate game over screen
+    /// <summary>
+    /// Activate main menu
+    /// </summary>
     public void MainMenu()
     {
+        Time.timeScale = 1f;
         SceneManager.LoadScene("MenuScene");
-        Time.timeScale = 1;
     }
 
-    //Quit game/exit play mode if in Editor
+    /// <summary>
+    /// Quit game/exit play mode if in Editor
+    /// </summary>
     public void Quit()
     {
-        Application.Quit(); //Quits the game (only works in build)
-
+        Application.Quit(); // Quits the game (only works in build)
 #if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false; //Exits play mode
+        UnityEditor.EditorApplication.isPlaying = false; // Exits play mode
 #endif
     }
     #endregion
@@ -106,16 +150,15 @@ public class UIManager : MonoBehaviour
     #region Pause
     public void PauseGame(bool status)
     {
-        //If status == true pause | if status == false unpause
+        // If status == true pause | if status == false unpause
         pauseScreen.SetActive(status);
 
-        //When pause status is true change timescale to 0 (time stops)
-        //when it's false change it back to 1 (time goes by normally)
+        // When pause status is true change timescale to 0 (time stops)
+        // when it's false change it back to 1 (time goes by normally)
         if (status)
             Time.timeScale = 0;
         else
             Time.timeScale = 1;
     }
-    
     #endregion
 }

@@ -19,6 +19,10 @@ public class ProfessorWalker : MonoBehaviour
         public Transform startPoint;
         public Transform endPoint;
 
+        [Header("Рух")]
+        public float speed = 1.5f; // 👈 ІНДИВІДУАЛЬНА ШВИДКІСТЬ
+        public bool playWalkAnimation = true;
+
         [Header("Фрази під час руху")]
         public TimedPhrase[] walkPhrases;
 
@@ -26,11 +30,14 @@ public class ProfessorWalker : MonoBehaviour
         [TextArea] public string[] hints;
     }
 
+
     [Header("Сегменти (0→1, 2→3, 4→5 …)")]
     public Segment[] segments;
 
-    [Header("Рух")]
-    public float speed = 1.5f;
+    [Header("Автостарт")]
+    public float autoStartDelay = 1f; // 👈 ЗАДЕРЖКА ПЕРЕД АВТОСТАРТОМ
+
+    [Header("Анімації")]
     public string speedParam = "Speed";
 
     [Header("Анімації")]
@@ -66,6 +73,16 @@ public class ProfessorWalker : MonoBehaviour
 
         if (hintBubble != null)
             hintBubble.SetActive(false);
+
+        // 👇 АВТОСТАРТ ЧЕРЕЗ 1 СЕКУНДУ
+        StartCoroutine(AutoStart());
+    }
+
+    // ===================== АВТОСТАРТ =====================
+    private IEnumerator AutoStart()
+    {
+        yield return new WaitForSeconds(autoStartDelay);
+        StartSegment();
     }
 
     // ===================== UPDATE =====================
@@ -97,21 +114,22 @@ public class ProfessorWalker : MonoBehaviour
         showingHints = false;
         hintIndex = 0;
 
-        // ✅ ХОВАЄМО підказки при старті ходіння
         if (hintBubble != null)
             hintBubble.SetActive(false);
 
         Segment s = segments[segmentIndex];
 
-        // ✅ Телепортуємо на початкову точку
         transform.position = s.startPoint.position;
 
-        // ✅ Запускаємо анімацію ходіння відразу
-        Vector3 dir = (s.endPoint.position - s.startPoint.position).normalized;
+        // 🔑 ВАЖЛИВО
         if (anim != null)
-            anim.SetFloat(speedParam, Mathf.Abs(dir.x));
+        {
+            if (s.playWalkAnimation)
+                anim.SetFloat(speedParam, 1f);
+            else
+                anim.SetFloat(speedParam, 0f); // залишається Idle
+        }
 
-        // ✅ Запускаємо фрази (вони йдуть незалежно від гравця)
         if (phraseRoutine != null) StopCoroutine(phraseRoutine);
         phraseRoutine = StartCoroutine(ShowPhrases(s.walkPhrases));
     }
@@ -120,21 +138,20 @@ public class ProfessorWalker : MonoBehaviour
     {
         Segment s = segments[segmentIndex];
         Vector3 dir = (s.endPoint.position - transform.position).normalized;
-        transform.position += dir * speed * Time.deltaTime;
 
-        // ✅ Оновлюємо анімацію ходьби
-        if (anim != null)
+        // 👇 ВИКОРИСТОВУЄМО ШВИДКІСТЬ З ПОТОЧНОГО СЕГМЕНТА
+        transform.position += dir * s.speed * Time.deltaTime;
+
+        if (anim != null && s.playWalkAnimation)
             anim.SetFloat(speedParam, Mathf.Abs(dir.x));
 
         if (Vector3.Distance(transform.position, s.endPoint.position) < 0.1f)
         {
             walking = false;
 
-            // ✅ Зупиняємо анімацію
             if (anim != null)
                 anim.SetFloat(speedParam, 0);
 
-            // ✅ Закриваємо діалог якщо він ще активний
             if (dialoguePanel != null)
                 dialoguePanel.SetActive(false);
 

@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,12 +7,12 @@ public class player_respawn : MonoBehaviour
     [SerializeField] private AudioClip checkpoint;
     private Transform currentCheckpoint;
     private Health playerHealth;
-    private UIManager uiManager;
+    private UIManagerNew uiManager;
 
     private void Awake()
     {
         playerHealth = GetComponent<Health>();
-        uiManager = FindObjectOfType<UIManager>();
+        uiManager = FindObjectOfType<UIManagerNew>();
     }
 
     public void CheckRespawn()

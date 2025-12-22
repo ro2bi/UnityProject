@@ -50,7 +50,7 @@ public class InteractableObject : MonoBehaviour
             string finalPrompt = interactionText.Replace("Press E", $"Press {key.ToString()}");
 
             // œŒ ¿«¿“‹ Œ ÕŒ
-            UIManager.ShowInteractionPrompt(finalPrompt);
+            UIManagerNew.ShowInteractionPrompt(finalPrompt);
         }
     }
 
@@ -60,7 +60,7 @@ public class InteractableObject : MonoBehaviour
         {
             playerInside = false;
             // — –€“‹ Œ ÕŒ
-            UIManager.HideInteractionPrompt();
+            UIManagerNew.HideInteractionPrompt();
         }
     }
 }
