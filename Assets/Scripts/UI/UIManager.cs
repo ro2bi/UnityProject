@@ -40,7 +40,7 @@ public class UIManagerNew : MonoBehaviour
         gameOverScreen.SetActive(false);
         pauseScreen.SetActive(false);
 
-        // 👇 НОВОЕ: Скрываем экран смерти
+        // Скрываем экран смерти
         if (deathScreen != null)
             deathScreen.SetActive(false);
 
@@ -92,8 +92,6 @@ public class UIManagerNew : MonoBehaviour
         }
     }
 
-    
-
     /// <summary>
     /// ☠️ GAME OVER (нет чекпоинта) — показывает экран Game Over
     /// </summary>
@@ -112,6 +110,13 @@ public class UIManagerNew : MonoBehaviour
     {
         if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.TOMENU)))
         {
+            // Проверяем, открыт ли инвентарь/магазин ИЛИ ESC уже был обработан в этом кадре
+            if (UIManagerShop.IsWindowOpen || UIManagerShop.EscPressedThisFrame)
+            {
+                // Если открыт или ESC уже обработан - не делаем ничего
+                return;
+            }
+
             // If pause screen already active unpause and viceversa
             PauseGame(!pauseScreen.activeInHierarchy);
         }

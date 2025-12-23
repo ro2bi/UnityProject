@@ -20,6 +20,8 @@ public static class KeybindManager
     public const string MOVE_LEFT = "MoveLeft";
     public const string INTERACT = "Interact"; 
     public const string TOMENU = "ToMenu";
+    public const string INVENTORY = "Inventory";
+    public const string OPEN_SHOP = "OpenShop";
     // Добавьте сюда любые другие действия
 
     // ----------------------------------------------------------------------
@@ -34,7 +36,9 @@ public static class KeybindManager
     { MOVE_RIGHT, KeyCode.D },
     { MOVE_LEFT, KeyCode.A },
     { INTERACT, KeyCode.E },
-    { TOMENU, KeyCode.Escape }
+    { TOMENU, KeyCode.Escape },
+    { INVENTORY, KeyCode.R },
+    { OPEN_SHOP, KeyCode.T }
 };
 
     public static void InitializeKeys()
