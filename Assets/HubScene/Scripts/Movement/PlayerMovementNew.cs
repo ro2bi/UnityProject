@@ -342,4 +342,20 @@ public class PlayerMovementNew : MonoBehaviour
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
     }
+
+    public void ApplyJumpBuff(float heightBonus, float durationBonus, float time)
+    {
+        StopAllCoroutines();
+        StartCoroutine(JumpBuffRoutine(heightBonus, durationBonus, time));
+    }
+
+    IEnumerator JumpBuffRoutine(float h, float d, float time)
+    {
+        currentJumpHeight = defaultJumpHeight + h;
+        currentJumpDuration = defaultJumpDuration + d;
+
+        yield return new WaitForSeconds(time);
+
+        ResetJumpParameters();
+    }
 }

@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "NewItem", menuName = "Inventory/Item")]
@@ -27,6 +25,22 @@ public class ItemData : ScriptableObject
     [Header("Для еды (опционально)")]
     public int healthRestore = 0;
     public int energyRestore = 0;
+
+    [Header("Эффект при использовании (опционально)")]
+    public ItemUseEffect useEffect = ItemUseEffect.None;
+    // для прыжка
+    public float jumpHeightBonus;
+    public float jumpDurationBonus;
+    public float buffDuration = 0f;
+
+    // для скорости
+    public float speedBonus;
+
+    // общее время эффекта
+    public float effectDuration = 3f;
+
+    [Header("Use settings")]
+    public bool isUsable = false;
 }
 
 public enum ItemType
@@ -43,4 +57,11 @@ public enum EquipmentSlot
     Body = 2,
     Legs = 4,
     BodyAndLegs = Body | Legs  // Комбинезон
+}
+
+public enum ItemUseEffect
+{
+    None,
+    JumpBoost,
+    SpeedBoost
 }

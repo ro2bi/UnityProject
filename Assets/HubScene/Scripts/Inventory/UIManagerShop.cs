@@ -1,36 +1,38 @@
-using UnityEngine;
+п»їusing UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections;
 
 public class UIManagerShop : MonoBehaviour
 {
     public static UIManagerShop Instance { get; private set; }
 
-    [Header("Главное окно")]
+    [Header("Р“Р»Р°РІРЅРѕРµ РѕРєРЅРѕ")]
     public GameObject mainWindow;
     public GameObject inventoryPanel;
     public GameObject shopPanel;
 
-    [Header("Кнопки вкладок")]
+    [Header("РљРЅРѕРїРєРё РІРєР»Р°РґРѕРє")]
     public Button inventoryTabButton;
     public Button shopTabButton;
 
-    [Header("Панель денег")]
+    [Header("РџР°РЅРµР»СЊ РґРµРЅРµРі")]
     public TextMeshProUGUI moneyText;
 
-    [Header("Сетка инвентаря")]
+    [Header("РЎРµС‚РєР° РёРЅРІРµРЅС‚Р°СЂСЏ")]
     public Transform inventoryGrid;
     public GameObject slotPrefab;
 
-    [Header("Сетка магазина")]
+    [Header("РЎРµС‚РєР° РјР°РіР°Р·РёРЅР°")]
     public Transform shopGrid;
     public GameObject shopSlotPrefab;
 
     private bool isInventoryOpen = false;
     private bool isShopOpen = false;
     private bool escPressedThisFrame = false;
+    private bool isInitialized = false;
 
-    // Публичное свойство для проверки извне
+    // РџСѓР±Р»РёС‡РЅРѕРµ СЃРІРѕР№СЃС‚РІРѕ РґР»СЏ РїСЂРѕРІРµСЂРєРё РёР·РІРЅРµ
     public static bool IsWindowOpen => Instance != null && Instance.mainWindow.activeSelf;
     public static bool EscPressedThisFrame => Instance != null && Instance.escPressedThisFrame;
 
@@ -45,66 +47,82 @@ public class UIManagerShop : MonoBehaviour
             Destroy(gameObject);
         }
 
-        // Инициализация KeybindManager
+        // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ KeybindManager
         KeybindManager.InitializeKeys();
     }
 
     private void Start()
     {
-        // Закрываем окно при старте
+        // Р—Р°РєСЂС‹РІР°РµРј РѕРєРЅРѕ РїСЂРё СЃС‚Р°СЂС‚Рµ
         mainWindow.SetActive(false);
 
-        // Подписываемся на события
-        inventoryTabButton.onClick.AddListener(() => SwitchTab(true));
-        shopTabButton.onClick.AddListener(() => SwitchTab(false));
+        // РџРѕРґРїРёСЃС‹РІР°РµРјСЃСЏ РЅР° СЃРѕР±С‹С‚РёСЏ РєРЅРѕРїРѕРє
+        if (inventoryTabButton != null)
+            inventoryTabButton.onClick.AddListener(() => SwitchTab(true));
+        if (shopTabButton != null)
+            shopTabButton.onClick.AddListener(() => SwitchTab(false));
 
-        InventorySystem.Instance.OnMoneyChanged += UpdateMoneyDisplay;
-        InventorySystem.Instance.OnInventoryChanged += RefreshInventoryUI;
+        // РџРѕРґРїРёСЃС‹РІР°РµРјСЃСЏ РЅР° СЃРѕР±С‹С‚РёСЏ СЃРёСЃС‚РµРјС‹
+        if (InventorySystem.Instance != null)
+        {
+            InventorySystem.Instance.OnMoneyChanged += UpdateMoneyDisplay;
+            InventorySystem.Instance.OnInventoryChanged += RefreshInventoryUI;
+        }
 
-        // Создаем слоты
+        // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ С‡РµСЂРµР· РєРѕСЂСѓС‚РёРЅСѓ
+        StartCoroutine(InitializeUISystem());
+    }
+
+    private IEnumerator InitializeUISystem()
+    {
+        // РЎРѕР·РґР°РµРј СЃР»РѕС‚С‹
         CreateInventorySlots();
         CreateShopSlots();
 
-        // Обновляем UI
-        UpdateMoneyDisplay(InventorySystem.Instance.CurrentMoney);
-        RefreshInventoryUI();
+        // Р–РґРµРј 2 РєР°РґСЂР° РґР»СЏ РїРѕР»РЅРѕР№ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё
+        yield return null;
+        yield return null;
+
+        // РћР±РЅРѕРІР»СЏРµРј UI
+        if (InventorySystem.Instance != null)
+        {
+            UpdateMoneyDisplay(InventorySystem.Instance.CurrentMoney);
+            RefreshInventoryUI();
+        }
+
+        isInitialized = true;
+        Debug.Log("UI СЃРёСЃС‚РµРјР° РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅР°");
     }
 
     private void Update()
     {
-        // Проверка нажатия клавиши инвентаря
+        if (!isInitialized) return;
+
+        // СЃР±СЂРѕСЃ С„Р»Р°РіР° РєР°Р¶РґС‹Р№ РєР°РґСЂ
+        escPressedThisFrame = false;
+
+        // РРЅРІРµРЅС‚Р°СЂСЊ
         if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.INVENTORY)))
         {
             if (isInventoryOpen)
-            {
-                // Если инвентарь уже открыт - закрываем окно
                 CloseWindow();
-            }
             else
-            {
-                // Если инвентарь не открыт - открываем его
                 OpenWindow(true);
-            }
         }
 
-        // Проверка нажатия клавиши магазина
+        // РњР°РіР°Р·РёРЅ
         if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.OPEN_SHOP)))
         {
             if (isShopOpen)
-            {
-                // Если магазин уже открыт - закрываем окно
                 CloseWindow();
-            }
             else
-            {
-                // Если магазин не открыт - открываем его
                 OpenWindow(false);
-            }
         }
 
-        // ESC для закрытия инвентаря/магазина (без открытия паузы)
+        // ESC вЂ” Р·Р°РєСЂС‹РІР°РµРј РёРЅРІРµРЅС‚Р°СЂСЊ/РјР°РіР°Р·РёРЅ
         if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.TOMENU)) && mainWindow.activeSelf)
         {
+            escPressedThisFrame = true;
             CloseWindow();
         }
     }
@@ -114,6 +132,10 @@ public class UIManagerShop : MonoBehaviour
         mainWindow.SetActive(true);
         SwitchTab(openInventory);
         PauseGame();
+
+        // Р Р°Р·Р±Р»РѕРєРёСЂСѓРµРј РєСѓСЂСЃРѕСЂ
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
     private void CloseWindow()
@@ -122,18 +144,22 @@ public class UIManagerShop : MonoBehaviour
         isInventoryOpen = false;
         isShopOpen = false;
         ResumeGame();
+
+        // Р‘Р»РѕРєРёСЂСѓРµРј РєСѓСЂСЃРѕСЂ РѕР±СЂР°С‚РЅРѕ (РµСЃР»Рё РЅСѓР¶РЅРѕ РґР»СЏ РІР°С€РµР№ РёРіСЂС‹)
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     private void PauseGame()
     {
         Time.timeScale = 0f;
-        Debug.Log("Игра на паузе (инвентарь/магазин)");
+        Debug.Log("РРіСЂР° РЅР° РїР°СѓР·Рµ (РёРЅРІРµРЅС‚Р°СЂСЊ/РјР°РіР°Р·РёРЅ РѕС‚РєСЂС‹С‚)");
     }
 
     private void ResumeGame()
     {
         Time.timeScale = 1f;
-        Debug.Log("Игра возобновлена");
+        Debug.Log("РРіСЂР° РІРѕР·РѕР±РЅРѕРІР»РµРЅР° (РёРЅРІРµРЅС‚Р°СЂСЊ/РјР°РіР°Р·РёРЅ Р·Р°РєСЂС‹С‚)");
     }
 
     private void SwitchTab(bool showInventory)
@@ -158,29 +184,55 @@ public class UIManagerShop : MonoBehaviour
 
     private void CreateInventorySlots()
     {
+        if (inventoryGrid == null || slotPrefab == null || InventorySystem.Instance == null)
+        {
+            Debug.LogError("РќРµ РЅР°Р·РЅР°С‡РµРЅС‹ РЅРµРѕР±С…РѕРґРёРјС‹Рµ РєРѕРјРїРѕРЅРµРЅС‚С‹ РґР»СЏ РёРЅРІРµРЅС‚Р°СЂСЏ!");
+            return;
+        }
+
         for (int i = 0; i < InventorySystem.Instance.maxSlots; i++)
         {
             GameObject slot = Instantiate(slotPrefab, inventoryGrid);
             InventorySlot slotComponent = slot.GetComponent<InventorySlot>();
-            slotComponent.slotIndex = i;
+            if (slotComponent != null)
+            {
+                slotComponent.slotIndex = i;
+            }
         }
     }
 
     private void CreateShopSlots()
     {
+        if (shopGrid == null || shopSlotPrefab == null || ShopSystem.Instance == null)
+        {
+            Debug.LogError("РќРµ РЅР°Р·РЅР°С‡РµРЅС‹ РЅРµРѕР±С…РѕРґРёРјС‹Рµ РєРѕРјРїРѕРЅРµРЅС‚С‹ РґР»СЏ РјР°РіР°Р·РёРЅР°!");
+            return;
+        }
+
         foreach (ItemData item in ShopSystem.Instance.AllItems)
         {
             GameObject slot = Instantiate(shopSlotPrefab, shopGrid);
             ShopSlot slotComponent = slot.GetComponent<ShopSlot>();
-            slotComponent.Initialize(item);
+            if (slotComponent != null)
+            {
+                slotComponent.Initialize(item);
+            }
         }
     }
 
     private void RefreshInventoryUI()
     {
+        if (!isInitialized || inventoryGrid == null || inventoryGrid.childCount == 0 || InventorySystem.Instance == null)
+            return;
+
         for (int i = 0; i < inventoryGrid.childCount; i++)
         {
-            InventorySlot slot = inventoryGrid.GetChild(i).GetComponent<InventorySlot>();
+            Transform child = inventoryGrid.GetChild(i);
+            if (child == null) continue;
+
+            InventorySlot slot = child.GetComponent<InventorySlot>();
+            if (slot == null) continue;
+
             if (i < InventorySystem.Instance.Items.Count)
             {
                 slot.SetItem(InventorySystem.Instance.Items[i]);
@@ -194,16 +246,27 @@ public class UIManagerShop : MonoBehaviour
 
     private void RefreshShopUI()
     {
+        if (!isInitialized || shopGrid == null || shopGrid.childCount == 0)
+            return;
+
         foreach (Transform child in shopGrid)
         {
+            if (child == null) continue;
+
             ShopSlot slot = child.GetComponent<ShopSlot>();
-            slot.UpdateInventoryCount();
+            if (slot != null)
+            {
+                slot.UpdateInventoryCount();
+            }
         }
     }
 
     private void UpdateMoneyDisplay(int money)
     {
-        moneyText.text = $"{money} серебра";
+        if (moneyText != null)
+        {
+            moneyText.text = $"{money} СЃРµСЂРµР±СЂР°";
+        }
     }
 
     private void OnDestroy()

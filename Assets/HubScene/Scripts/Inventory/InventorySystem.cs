@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+п»їusing System.Collections.Generic;
 using UnityEngine;
 using System;
 
@@ -6,23 +6,23 @@ public class InventorySystem : MonoBehaviour
 {
     public static InventorySystem Instance { get; private set; }
 
-    [Header("Настройки")]
+    [Header("РќР°СЃС‚СЂРѕР№РєРё")]
     public int maxSlots = 15;
     public int startingMoney = 100;
 
-    [Header("Экипировка персонажа")]
+    [Header("Р­РєРёРїРёСЂРѕРІРєР° РїРµСЂСЃРѕРЅР°Р¶Р°")]
     public SpriteRenderer headRenderer;
     public SpriteRenderer bodyRenderer;
     public SpriteRenderer legsRenderer;
 
-    // Данные инвентаря
+    // Р”Р°РЅРЅС‹Рµ РёРЅРІРµРЅС‚Р°СЂСЏ
     private List<ItemData> items = new List<ItemData>();
     private int currentMoney;
 
-    // Экипированные предметы
+    // Р­РєРёРїРёСЂРѕРІР°РЅРЅС‹Рµ РїСЂРµРґРјРµС‚С‹
     private Dictionary<EquipmentSlot, ItemData> equippedItems = new Dictionary<EquipmentSlot, ItemData>();
 
-    // События для обновления UI
+    // РЎРѕР±С‹С‚РёСЏ РґР»СЏ РѕР±РЅРѕРІР»РµРЅРёСЏ UI
     public event Action OnInventoryChanged;
     public event Action<int> OnMoneyChanged;
 
@@ -47,12 +47,12 @@ public class InventorySystem : MonoBehaviour
         LoadInventory();
     }
 
-    // Добавить предмет в инвентарь
+    // Р”РѕР±Р°РІРёС‚СЊ РїСЂРµРґРјРµС‚ РІ РёРЅРІРµРЅС‚Р°СЂСЊ
     public bool AddItem(ItemData item)
     {
         if (items.Count >= maxSlots)
         {
-            Debug.Log("Инвентарь полон!");
+            Debug.Log("РРЅРІРµРЅС‚Р°СЂСЊ РїРѕР»РѕРЅ!");
             return false;
         }
 
@@ -62,7 +62,7 @@ public class InventorySystem : MonoBehaviour
         return true;
     }
 
-    // Удалить предмет из инвентаря
+    // РЈРґР°Р»РёС‚СЊ РїСЂРµРґРјРµС‚ РёР· РёРЅРІРµРЅС‚Р°СЂСЏ
     public void RemoveItem(ItemData item)
     {
         items.Remove(item);
@@ -70,7 +70,7 @@ public class InventorySystem : MonoBehaviour
         SaveInventory();
     }
 
-    // Переместить предмет (для drag&drop)
+    // РџРµСЂРµРјРµСЃС‚РёС‚СЊ РїСЂРµРґРјРµС‚ (РґР»СЏ drag&drop)
     public void MoveItem(int fromIndex, int toIndex)
     {
         if (fromIndex < 0 || fromIndex >= items.Count || toIndex < 0 || toIndex >= maxSlots)
@@ -88,12 +88,12 @@ public class InventorySystem : MonoBehaviour
         SaveInventory();
     }
 
-    // Купить предмет
+    // РљСѓРїРёС‚СЊ РїСЂРµРґРјРµС‚
     public bool BuyItem(ItemData item)
     {
         if (currentMoney < item.buyPrice)
         {
-            Debug.Log("Недостаточно денег!");
+            Debug.Log("РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РґРµРЅРµРі!");
             return false;
         }
 
@@ -106,32 +106,48 @@ public class InventorySystem : MonoBehaviour
         return false;
     }
 
-    // Продать предмет
+    // РџСЂРѕРґР°С‚СЊ РїСЂРµРґРјРµС‚
     public void SellItem(ItemData item)
     {
         RemoveItem(item);
         AddMoney(item.sellPrice);
     }
 
-    // Использовать предмет
+    // РСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РїСЂРµРґРјРµС‚
     public void UseItem(ItemData item)
     {
-        switch (item.itemType)
-        {
-            case ItemType.Clothing:
-                EquipClothing(item);
-                break;
+        if (item == null) return;
+        if (!item.isUsable) return;
 
-            case ItemType.Food:
-                ConsumeFood(item);
-                break;
+        PlayerMovementNew player =
+            FindObjectOfType<PlayerMovementNew>();
+
+        if (player == null) return;
+
+        //Р•Р”Рђ / Р—Р•Р›Р¬РЇ
+        if (item.itemType == ItemType.Food)
+        {
+            // С‚СѓС‚ РїС–Р·РЅС–С€Рµ hp / stamina
         }
+
+        // Р‘РђР¤Р¤ РЎРўР РР‘РљРђ
+        if (item.jumpHeightBonus != 0 || item.jumpDurationBonus != 0)
+        {
+            player.ApplyJumpBuff(
+                item.jumpHeightBonus,
+                item.jumpDurationBonus,
+                item.buffDuration
+            );
+        }
+
+        // СѓРґР°Р»СЏРµРј РїСЂРµРґРјРµС‚ (РЅРµ СЃС‚Р°РєР°РµС‚СЃСЏ)
+        RemoveItem(item);
     }
 
-    // Экипировать одежду
+    // Р­РєРёРїРёСЂРѕРІР°С‚СЊ РѕРґРµР¶РґСѓ
     private void EquipClothing(ItemData item)
     {
-        // Снимаем старую одежду в затронутых слотах
+        // РЎРЅРёРјР°РµРј СЃС‚Р°СЂСѓСЋ РѕРґРµР¶РґСѓ РІ Р·Р°С‚СЂРѕРЅСѓС‚С‹С… СЃР»РѕС‚Р°С…
         if ((item.equipmentSlots & EquipmentSlot.Head) != 0)
         {
             UnequipSlot(EquipmentSlot.Head);
@@ -156,18 +172,18 @@ public class InventorySystem : MonoBehaviour
                 legsRenderer.sprite = item.legsSprite;
         }
 
-        Debug.Log($"Экипирована одежда: {item.itemName}");
+        Debug.Log($"Р­РєРёРїРёСЂРѕРІР°РЅР° РѕРґРµР¶РґР°: {item.itemName}");
         SaveInventory();
     }
 
-    // Снять одежду со слота
+    // РЎРЅСЏС‚СЊ РѕРґРµР¶РґСѓ СЃРѕ СЃР»РѕС‚Р°
     private void UnequipSlot(EquipmentSlot slot)
     {
         if (equippedItems.ContainsKey(slot))
         {
             equippedItems.Remove(slot);
 
-            // Очищаем спрайт
+            // РћС‡РёС‰Р°РµРј СЃРїСЂР°Р№С‚
             switch (slot)
             {
                 case EquipmentSlot.Head:
@@ -183,21 +199,21 @@ public class InventorySystem : MonoBehaviour
         }
     }
 
-    // Съесть еду
+    // РЎСЉРµСЃС‚СЊ РµРґСѓ
     private void ConsumeFood(ItemData item)
     {
-        // TODO: Добавьте здесь логику восстановления здоровья/энергии
-        // Например:
+        // TODO: Р”РѕР±Р°РІСЊС‚Рµ Р·РґРµСЃСЊ Р»РѕРіРёРєСѓ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёСЏ Р·РґРѕСЂРѕРІСЊСЏ/СЌРЅРµСЂРіРёРё
+        // РќР°РїСЂРёРјРµСЂ:
         // PlayerHealth.Instance.Heal(item.healthRestore);
         // PlayerEnergy.Instance.RestoreEnergy(item.energyRestore);
 
-        Debug.Log($"Использована еда: {item.itemName}");
-        Debug.Log($"Восстановление здоровья: {item.healthRestore}, энергии: {item.energyRestore}");
+        Debug.Log($"РСЃРїРѕР»СЊР·РѕРІР°РЅР° РµРґР°: {item.itemName}");
+        Debug.Log($"Р’РѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ Р·РґРѕСЂРѕРІСЊСЏ: {item.healthRestore}, СЌРЅРµСЂРіРёРё: {item.energyRestore}");
 
         RemoveItem(item);
     }
 
-    // Проверить, сколько предметов определенного типа в инвентаре
+    // РџСЂРѕРІРµСЂРёС‚СЊ, СЃРєРѕР»СЊРєРѕ РїСЂРµРґРјРµС‚РѕРІ РѕРїСЂРµРґРµР»РµРЅРЅРѕРіРѕ С‚РёРїР° РІ РёРЅРІРµРЅС‚Р°СЂРµ
     public int GetItemCount(ItemData item)
     {
         int count = 0;
@@ -209,7 +225,7 @@ public class InventorySystem : MonoBehaviour
         return count;
     }
 
-    // Управление деньгами
+    // РЈРїСЂР°РІР»РµРЅРёРµ РґРµРЅСЊРіР°РјРё
     public void AddMoney(int amount)
     {
         currentMoney += amount;
@@ -217,7 +233,7 @@ public class InventorySystem : MonoBehaviour
         SaveInventory();
     }
 
-    // Сохранение инвентаря
+    // РЎРѕС…СЂР°РЅРµРЅРёРµ РёРЅРІРµРЅС‚Р°СЂСЏ
     private void SaveInventory()
     {
         InventorySaveData saveData = new InventorySaveData
@@ -232,7 +248,7 @@ public class InventorySystem : MonoBehaviour
                 saveData.itemNames.Add(item.name);
         }
 
-        // Сохранение экипированных предметов
+        // РЎРѕС…СЂР°РЅРµРЅРёРµ СЌРєРёРїРёСЂРѕРІР°РЅРЅС‹С… РїСЂРµРґРјРµС‚РѕРІ
         saveData.equippedItemNames = new Dictionary<string, string>();
         foreach (var kvp in equippedItems)
         {
@@ -245,7 +261,7 @@ public class InventorySystem : MonoBehaviour
         PlayerPrefs.Save();
     }
 
-    // Загрузка инвентаря
+    // Р—Р°РіСЂСѓР·РєР° РёРЅРІРµРЅС‚Р°СЂСЏ
     private void LoadInventory()
     {
         if (PlayerPrefs.HasKey("InventoryData"))
@@ -263,7 +279,7 @@ public class InventorySystem : MonoBehaviour
                     items.Add(item);
             }
 
-            // Загрузка экипированных предметов
+            // Р—Р°РіСЂСѓР·РєР° СЌРєРёРїРёСЂРѕРІР°РЅРЅС‹С… РїСЂРµРґРјРµС‚РѕРІ
             equippedItems.Clear();
             if (saveData.equippedItemNames != null)
             {
@@ -275,7 +291,7 @@ public class InventorySystem : MonoBehaviour
                         if (item != null)
                         {
                             equippedItems[slot] = item;
-                            // Применяем визуал
+                            // РџСЂРёРјРµРЅСЏРµРј РІРёР·СѓР°Р»
                             if (slot == EquipmentSlot.Head && headRenderer != null)
                                 headRenderer.sprite = item.headSprite;
                             if (slot == EquipmentSlot.Body && bodyRenderer != null)
@@ -294,6 +310,36 @@ public class InventorySystem : MonoBehaviour
         {
             currentMoney = startingMoney;
             OnMoneyChanged?.Invoke(currentMoney);
+        }
+    }
+
+    private void ApplyUseEffect(ItemData item)
+    {
+        if (item.useEffect == ItemUseEffect.None)
+            return;
+
+        if (PlayerStats.Instance == null)
+        {
+            Debug.LogWarning("PlayerStats not found");
+            return;
+        }
+
+        switch (item.useEffect)
+        {
+            case ItemUseEffect.JumpBoost:
+                PlayerStats.Instance.ApplyJumpBoost(
+                    item.jumpHeightBonus,
+                    item.jumpDurationBonus,
+                    item.effectDuration
+                );
+                break;
+
+            case ItemUseEffect.SpeedBoost:
+                PlayerStats.Instance.ApplySpeedBoost(
+                    item.speedBonus,
+                    item.effectDuration
+                );
+                break;
         }
     }
 }

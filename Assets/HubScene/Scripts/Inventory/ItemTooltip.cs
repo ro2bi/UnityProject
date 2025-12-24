@@ -24,6 +24,8 @@ public class ItemTooltip : MonoBehaviour
     private ItemData currentItem;
     private bool isInInventory;
 
+    public Button useButton;
+
     private void Awake()
     {
         if (Instance == null)

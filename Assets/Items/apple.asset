@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: apple
   m_EditorClassIdentifier: 
   itemName: apple
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 5a3ea7e19d8769348a696ef6d57fddf6, type: 3}
   description: By eating you could have boosted jump
   buyPrice: 10
   sellPrice: 10
@@ -24,3 +24,10 @@ MonoBehaviour:
   legsSprite: {fileID: 0}
   healthRestore: 0
   energyRestore: 0
+  useEffect: 1
+  jumpHeightBonus: 0.3
+  jumpDurationBonus: 0.15
+  buffDuration: 0
+  speedBonus: 0
+  effectDuration: 5
+  isUsable: 0
