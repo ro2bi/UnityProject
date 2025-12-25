@@ -45,8 +45,9 @@ public class ItemData : ScriptableObject
 
 public enum ItemType
 {
-    Clothing,  // Одежда
-    Food       // Еда
+    Clothing,
+    Potion,
+    Food  
 }
 
 [System.Flags]

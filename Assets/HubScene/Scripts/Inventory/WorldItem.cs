@@ -1,16 +1,28 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
+
 public class WorldItem : MonoBehaviour
 {
+    [Header("Данные предмета")]
     public ItemData item;
     public int amount = 1;
 
+    [Header("Визуал (опционально)")]
+    public SpriteRenderer spriteRenderer;
+
     private bool canPickUp;
+
+    private void Start()
+    {
+        // Автоматически устанавливаем иконку предмета
+        if (item != null && spriteRenderer != null)
+        {
+            spriteRenderer.sprite = item.icon;
+        }
+    }
 
     private void Update()
     {
-        if (canPickUp && Input.GetKeyDown(KeyCode.E))
+        if (canPickUp && Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.INTERACT)))
         {
             TryPickUp();
         }
@@ -18,30 +30,61 @@ public class WorldItem : MonoBehaviour
 
     private void TryPickUp()
     {
-        for (int i = 0; i < amount; i++)
+        if (item == null)
         {
-            if (!InventorySystem.Instance.AddItem(item))
-                return;
+            Debug.LogWarning("⚠️ WorldItem: Предмет не назначен!");
+            return;
         }
 
+        // Пытаемся добавить предметы в инвентарь
+        int addedCount = 0;
+
+        for (int i = 0; i < amount; i++)
+        {
+            if (InventorySystem.Instance.AddItem(item))
+            {
+                addedCount++;
+            }
+            else
+            {
+                Debug.Log($"⚠️ Инвентарь полон! Подобрано {addedCount} из {amount}");
+
+                // Обновляем количество оставшихся предметов
+                amount -= addedCount;
+                return;
+            }
+        }
+
+        Debug.Log($"✅ Подобрано: {item.itemName} x{addedCount}");
+
+        // Уничтожаем объект после подбора
         Destroy(gameObject);
     }
 
-    private void OnTriggerEnter(Collider other)
+    // ✅ Для 2D используем Collider2D
+    private void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("Player"))
         {
             canPickUp = true;
-            UIManagerNew.ShowInteractionPrompt($"��������� {item.itemName} [E]");
         }
     }
 
-    private void OnTriggerExit(Collider other)
+    private void OnTriggerExit2D(Collider2D other)
     {
         if (other.CompareTag("Player"))
         {
             canPickUp = false;
-            UIManagerNew.HideInteractionPrompt();
+        }
+    }
+
+    // Визуальная подсказка в редакторе
+    private void OnDrawGizmos()
+    {
+        if (item != null)
+        {
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(transform.position, 0.5f);
         }
     }
 }

@@ -1,12 +1,16 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class ShopSystem : MonoBehaviour
 {
     public static ShopSystem Instance { get; private set; }
 
-    [Header("������ ���� ��������� � ����")]
+    [Header("Список всех предметов в игре")]
     public List<ItemData> allItems = new List<ItemData>();
+
+    [Header("Настройки загрузки")]
+    [Tooltip("Если true, автоматически загрузит все предметы из Resources/Items")]
+    public bool autoLoadFromResources = true;
 
     public List<ItemData> AllItems => allItems;
 
@@ -25,17 +29,62 @@ public class ShopSystem : MonoBehaviour
 
     private void Start()
     {
-        // ������������� ��������� ��� �������� �� ����� Resources/Items
-        LoadAllItems();
+        // Автоматически загрузить все предметы из папки Resources/Items
+        if (autoLoadFromResources)
+        {
+            LoadAllItems();
+        }
+
+        // Проверка на пустой список
+        if (allItems.Count == 0)
+        {
+            Debug.LogWarning("⚠ShopSystem: Нет предметов для продажи! Добавьте предметы в список или включите autoLoadFromResources.");
+        }
     }
 
     private void LoadAllItems()
     {
-        if (allItems.Count == 0)
+        // Загружаем все ItemData из Resources/Items
+        ItemData[] items = Resources.LoadAll<ItemData>("Items");
+
+        if (items.Length == 0)
         {
-            ItemData[] items = Resources.LoadAll<ItemData>("Items");
-            allItems.AddRange(items);
-            Debug.Log($"��������� {allItems.Count} ��������� � �������");
+            Debug.LogWarning("⚠ShopSystem: Не найдено предметов в Resources/Items!");
+            return;
         }
+
+        // Очищаем старый список, если загружаем заново
+        allItems.Clear();
+        allItems.AddRange(items);
+
+        Debug.Log($"Загружено {allItems.Count} предметов в магазин");
+    }
+
+    // Фильтр предметов по типу (для категорий в UI)
+    public List<ItemData> GetItemsByType(ItemType type)
+    {
+        List<ItemData> result = new List<ItemData>();
+
+        foreach (ItemData item in allItems)
+        {
+            if (item.itemType == type)
+            {
+                result.Add(item);
+            }
+        }
+
+        return result;
+    }
+
+    // Получить все предметы одежды
+    public List<ItemData> GetClothingItems()
+    {
+        return GetItemsByType(ItemType.Clothing);
+    }
+
+    // Получить всю еду
+    public List<ItemData> GetFoodItems()
+    {
+        return GetItemsByType(ItemType.Food);
     }
 }
