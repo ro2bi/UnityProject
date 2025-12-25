@@ -8,7 +8,7 @@ public class RoadController : MonoBehaviour
     private void Start()
     {
         road.SetActive(false);
-        wall.SetActive(false);
+        wall.SetActive(true);
     }
 
     public void ActivateRoad()

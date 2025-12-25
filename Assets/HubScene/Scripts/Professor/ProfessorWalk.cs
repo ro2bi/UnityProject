@@ -53,6 +53,12 @@ public class ProfessorWalker : MonoBehaviour
     [Header("UI підказок")]
     public GameObject hintBubble;
     public TextMeshProUGUI hintText;
+    [Header("Фінальний сегмент")]
+    public bool finalSegmentOnlyByTrigger = false;
+    [Header("Фінальная стіна")]
+    public GameObject finalWall;
+    [Header("Фінальний контролер дороги")]
+    public RoadController roadController;
 
     // ===================== STATE =====================
     private int segmentIndex = 0;
@@ -88,8 +94,9 @@ public class ProfessorWalker : MonoBehaviour
     // ===================== UPDATE =====================
     private void Update()
     {
-        if (waitingForInteract && playerInside &&
-            Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.INTERACT)))
+        if (!finalSegmentOnlyByTrigger &&
+        waitingForInteract && playerInside &&
+        Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.INTERACT)))
         {
             StartSegment();
         }
@@ -119,7 +126,6 @@ public class ProfessorWalker : MonoBehaviour
 
         Segment s = segments[segmentIndex];
 
-        transform.position = s.startPoint.position;
 
         // 🔑 ВАЖЛИВО
         if (anim != null)
@@ -139,12 +145,13 @@ public class ProfessorWalker : MonoBehaviour
         Segment s = segments[segmentIndex];
         Vector3 dir = (s.endPoint.position - transform.position).normalized;
 
-        // 👇 ВИКОРИСТОВУЄМО ШВИДКІСТЬ З ПОТОЧНОГО СЕГМЕНТА
+        // Движение
         transform.position += dir * s.speed * Time.deltaTime;
 
         if (anim != null && s.playWalkAnimation)
             anim.SetFloat(speedParam, Mathf.Abs(dir.x));
 
+        // Проверка, дошли ли до конца сегмента
         if (Vector3.Distance(transform.position, s.endPoint.position) < 0.1f)
         {
             walking = false;
@@ -156,6 +163,18 @@ public class ProfessorWalker : MonoBehaviour
                 dialoguePanel.SetActive(false);
 
             showingHints = true;
+
+            // ===== ДОБАВЛЯЕМ =====
+            if (segmentIndex == segments.Length - 1)
+            {
+                // Последний сегмент — открываем путь
+                if (roadController != null)
+                    roadController.ActivateRoad();
+
+                // Если используется отдельная стена
+                if (finalWall != null)
+                    finalWall.SetActive(false);
+            }
         }
     }
 
@@ -230,10 +249,12 @@ public class ProfessorWalker : MonoBehaviour
         if (segmentIndex >= segments.Length)
             segmentIndex = 0;
 
-        // ✅ Готові до взаємодії
-        waitingForInteract = true;
+        // 👇 ВАЖНО
+        waitingForInteract = true;   // ждём игрока
         showingHints = false;
         walking = false;
+
+        finalSegmentOnlyByTrigger = true;
     }
 
     // ===================== TRIGGERS =====================
@@ -252,5 +273,33 @@ public class ProfessorWalker : MonoBehaviour
             // ✅ НЕ закриваємо UI коли гравець виходить
             // Фрази та підказки продовжують показуватися
         }
+    }
+    public void StartCurrentSegmentExternally()
+    {
+        if (waitingForInteract)
+        {
+            StartSegment();
+        }
+    }
+    public IEnumerator FinalDisappear()
+    {
+        // Отключаем все UI панели
+        if (dialoguePanel != null)
+            dialoguePanel.SetActive(false);
+        if (hintBubble != null)
+            hintBubble.SetActive(false);
+
+        // Останавливаем анимацию движения
+        if (anim != null)
+            anim.SetFloat(speedParam, 0);
+
+        // Анимация исчезновения
+        if (anim != null)
+            anim.Play(disappearAnim);
+
+        yield return new WaitForSeconds(disappearDuration);
+
+        // Отключаем объект полностью
+        gameObject.SetActive(false);
     }
 }

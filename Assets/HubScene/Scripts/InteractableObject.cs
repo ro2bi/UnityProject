@@ -1,22 +1,22 @@
 using UnityEngine;
 
-// Этот скрипт можно вешать на двери, сундуки, кнопки и т.д.
+// пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅ.пїЅ.
 public class InteractableObject : MonoBehaviour
 {
-    // Текст, который будет отображаться. 
-    // Назначается в Инспекторе для каждого объекта.
-    [Header("Текст подсказки")]
+    // пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ. 
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ.
+    [Header("пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
     [SerializeField] private string interactionText = "Press E to Interact";
 
-    // Какой-то скрипт, который выполняет основное действие (открытие двери, и т.д.)
+    // пїЅпїЅпїЅпїЅпїЅ-пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅ пїЅ.пїЅ.)
     //private IActionComponent action;
 
-    // Имя действия для KeybindManager
+    // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ KeybindManager
     private readonly string interactKeyName = KeybindManager.INTERACT;
 
     private bool playerInside = false;
 
-    // В идеале получать компонент действия здесь
+    // пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
     private void Awake()
     {
         // action = GetComponent<IActionComponent>(); 
@@ -24,43 +24,48 @@ public class InteractableObject : MonoBehaviour
 
     private void Update()
     {
+        // Р•СЃР»Рё РѕР±СЉРµРєС‚ вЂ” РїСЂРѕС„РµСЃСЃРѕСЂ Рё С„РёРЅР°Р»СЊРЅС‹Р№ СЃРµРіРјРµРЅС‚, Р±Р»РѕРєРёСЂСѓРµРј РёРЅС‚РµСЂР°РєС†РёСЋ
+        ProfessorWalker professor = GetComponent<ProfessorWalker>();
+        if (professor != null && professor.finalSegmentOnlyByTrigger)
+            return;
+
         if (playerInside && Input.GetKeyDown(KeybindManager.GetKey(interactKeyName)))
         {
-            // Выполнить действие объекта
             ExecuteAction();
         }
     }
 
     private void ExecuteAction()
     {
-        Debug.Log($"Объект {gameObject.name} активирован!");
+        Debug.Log($"пїЅпїЅпїЅпїЅпїЅпїЅ {gameObject.name} пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ!");
         // action?.Execute();
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
-        {
-            playerInside = true;
+        if (!other.CompareTag("Player")) return;
 
-            // Получаем клавишу из KeybindManager
-            KeyCode key = KeybindManager.GetKey(interactKeyName);
+        // Р•СЃР»Рё РѕР±СЉРµРєС‚ вЂ” РїСЂРѕС„РµСЃСЃРѕСЂ Рё С„РёРЅР°Р»СЊРЅС‹Р№ СЃРµРіРјРµРЅС‚, РЅРµ РїРѕРєР°Р·С‹РІР°РµРј РїРѕРґСЃРєР°Р·РєСѓ
+        ProfessorWalker professor = GetComponent<ProfessorWalker>();
+        if (professor != null && professor.finalSegmentOnlyByTrigger)
+            return;
 
-            // Формируем финальный текст, подставляя клавишу
-            string finalPrompt = interactionText.Replace("Press E", $"Press {key.ToString()}");
+        playerInside = true;
+        KeyCode key = KeybindManager.GetKey(interactKeyName);
+        string finalPrompt = interactionText.Replace("Press E", $"Press {key.ToString()}");
 
-            // ПОКАЗАТЬ ОКНО
-            UIManagerNew.ShowInteractionPrompt(finalPrompt);
-        }
+        UIManagerNew.ShowInteractionPrompt(finalPrompt);
     }
 
     private void OnTriggerExit2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
-        {
-            playerInside = false;
-            // СКРЫТЬ ОКНО
-            UIManagerNew.HideInteractionPrompt();
-        }
+        if (!other.CompareTag("Player")) return;
+
+        ProfessorWalker professor = GetComponent<ProfessorWalker>();
+        if (professor != null && professor.finalSegmentOnlyByTrigger)
+            return;
+
+        playerInside = false;
+        UIManagerNew.HideInteractionPrompt();
     }
 }
