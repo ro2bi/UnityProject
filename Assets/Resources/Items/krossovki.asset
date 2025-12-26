@@ -18,7 +18,7 @@ MonoBehaviour:
   buyPrice: 10
   sellPrice: 10
   itemType: 0
-  equipmentSlots: 0
+  equipmentSlots: 4
   headSprite: {fileID: 0}
   bodySprite: {fileID: 0}
   legsSprite: {fileID: 0}

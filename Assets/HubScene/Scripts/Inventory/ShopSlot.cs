@@ -10,6 +10,10 @@ public class ShopSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public TextMeshProUGUI priceText;
     public TextMeshProUGUI inventoryCountText;
 
+    [Header("Настройки цвета")]
+    public Color affordableColor = Color.green;
+    public Color expensiveColor = Color.red;
+
     private ItemData item;
 
     public void Initialize(ItemData itemData)
@@ -18,44 +22,66 @@ public class ShopSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
         if (item != null)
         {
-            itemIcon.sprite = item.icon;
-            itemIcon.enabled = true;
-
-            // Показываем цену
-            if (priceText != null)
+            if (itemIcon != null)
             {
-                priceText.text = $"{item.buyPrice}";
+                itemIcon.sprite = item.icon;
+                itemIcon.enabled = true;
             }
 
-            UpdateInventoryCount();
+            UpdateSlotUI();
+        }
+    }
+
+    // Метод для обновления всех текстовых данных в слоте
+    public void UpdateSlotUI()
+    {
+        if (item == null) return;
+
+        // Обновляем количество в инвентаре
+        UpdateInventoryCount();
+
+        // Обновляем цену и её цвет
+        if (priceText != null)
+        {
+            priceText.text = $"{item.buyPrice}";
+
+            // Проверка: хватает ли денег
+            if (InventorySystem.Instance != null)
+            {
+                bool canAfford = InventorySystem.Instance.CurrentMoney >= item.buyPrice;
+                priceText.color = canAfford ? affordableColor : expensiveColor;
+            }
         }
     }
 
     public void UpdateInventoryCount()
     {
-        if (item != null && inventoryCountText != null)
+        if (item != null && inventoryCountText != null && InventorySystem.Instance != null)
         {
             int count = InventorySystem.Instance.GetItemCount(item);
             inventoryCountText.text = $"{count}";
         }
     }
 
-    // Наведение мыши - показываем тултип
+    // Наведение мыши
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (item != null)
+        // Добавлена проверка на null для безопасности
+        if (item != null && ItemTooltip.Instance != null)
         {
             ItemTooltip.Instance.ShowTooltip(item, false);
         }
     }
 
-    // Уход мыши - скрываем тултип
+    // Уход мыши
     public void OnPointerExit(PointerEventData eventData)
     {
-        ItemTooltip.Instance.HideTooltip();
+        if (ItemTooltip.Instance != null)
+        {
+            ItemTooltip.Instance.HideTooltip();
+        }
     }
 
-    // Клик по слоту - покупка предмета
     public void OnPointerClick(PointerEventData eventData)
     {
         if (eventData.button == PointerEventData.InputButton.Left)
@@ -66,17 +92,21 @@ public class ShopSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     public void OnBuyButtonClicked()
     {
-        if (item != null)
+        if (item != null && InventorySystem.Instance != null)
         {
             bool success = InventorySystem.Instance.BuyItem(item);
 
             if (success)
             {
                 Debug.Log($"Куплен предмет: {item.itemName}");
-                UpdateInventoryCount();
 
-                // Обновляем тултип, чтобы показать новое количество
-                ItemTooltip.Instance.ShowTooltip(item, false);
+                // Сразу обновляем весь UI магазина, чтобы пересчитать цвета цен у ВСЕХ предметов
+                UIManagerShop.Instance.RefreshShopUI();
+
+                if (ItemTooltip.Instance != null)
+                {
+                    ItemTooltip.Instance.ShowTooltip(item, false);
+                }
             }
             else
             {

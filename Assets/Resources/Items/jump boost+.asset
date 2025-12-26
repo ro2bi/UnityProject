@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 816891d01cec34847adbe436c68dda1a, type: 3}
   m_Name: jump boost+
   m_EditorClassIdentifier: 
-  itemName: Jump booster
+  itemName: Jump booster+
   icon: {fileID: 21300000, guid: 5a3ea7e19d8769348a696ef6d57fddf6, type: 3}
   description: By eating you could have boosted jump
   buyPrice: 10

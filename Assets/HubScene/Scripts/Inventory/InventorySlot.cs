@@ -116,16 +116,16 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     // Наведение мыши
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (currentItem != null)
+        if (currentItem != null && ItemTooltip.Instance != null)
         {
             ItemTooltip.Instance.ShowTooltip(currentItem, true);
         }
     }
 
-    // Уход мыши
     public void OnPointerExit(PointerEventData eventData)
     {
-        ItemTooltip.Instance.HideTooltip();
+        if (ItemTooltip.Instance != null)
+            ItemTooltip.Instance.HideTooltip();
     }
 
     // Клик мыши (ПКМ и двойной клик)
@@ -177,5 +177,10 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             InventorySystem.Instance.SellItem(currentItem);
             ItemTooltip.Instance.HideTooltip();
         }
+    }
+
+    public bool IsEmpty
+    {
+        get { return currentItem == null; }
     }
 }

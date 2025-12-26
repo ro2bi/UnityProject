@@ -24,7 +24,7 @@ public class UIManagerShop : MonoBehaviour
     public Transform invFoodGrid;
     public Transform invPotionsGrid;
     public Transform invClothingGrid;
-    public GameObject inventorySlotPrefab; // Ваш префаб слота инвентаря
+    public GameObject inventorySlotPrefab; // префаб слота инвентаря
 
     [Header("Сетки МАГАЗИНА по категориям")]
     public Transform shopFoodGrid;
@@ -68,18 +68,28 @@ public class UIManagerShop : MonoBehaviour
 
     private IEnumerator InitializeUISystem()
     {
-        // Магазин создается один раз при старте
-        CreateShopSlots();
-
-        yield return null;
+        // Инвентарь создаём СРАЗУ
+        CreateInventorySlots();
 
         if (InventorySystem.Instance != null)
         {
             UpdateMoneyDisplay(InventorySystem.Instance.CurrentMoney);
-            RefreshInventoryUI(); // Первичное заполнение инвентаря
+            RefreshInventoryUI();
         }
 
+        // UI можно открывать
         isInitialized = true;
+
+        // Ждём, пока магазин загрузится
+        yield return new WaitUntil(() =>
+            ShopSystem.Instance != null &&
+            ShopSystem.Instance.AllItems != null &&
+            ShopSystem.Instance.AllItems.Count > 0
+        );
+
+        Debug.Log($"Создаём слоты магазина: {ShopSystem.Instance.AllItems.Count}");
+
+        CreateShopSlots();
     }
 
     private void Update()
@@ -112,29 +122,21 @@ public class UIManagerShop : MonoBehaviour
     {
         if (InventorySystem.Instance == null) return;
 
-        // 1. Очищаем все старые слоты во всех гридах инвентаря
-        ClearGrid(invFoodGrid);
-        ClearGrid(invPotionsGrid);
-        ClearGrid(invClothingGrid);
+        ClearInventorySlots();
 
-        // 2. Раскладываем предметы по категориям
-        // Важно: проходим по списку предметов игрока
         for (int i = 0; i < InventorySystem.Instance.Items.Count; i++)
         {
             ItemData item = InventorySystem.Instance.Items[i];
             if (item == null) continue;
 
-            Transform targetGrid = GetTargetGrid(item.itemType, true);
+            Transform grid = GetTargetGrid(item.itemType, true);
+            if (grid == null) continue;
 
-            if (targetGrid != null)
+            InventorySlot freeSlot = GetFirstEmptySlot(grid);
+            if (freeSlot != null)
             {
-                GameObject slotObj = Instantiate(inventorySlotPrefab, targetGrid);
-                InventorySlot slot = slotObj.GetComponent<InventorySlot>();
-                if (slot != null)
-                {
-                    slot.slotIndex = i; // Сохраняем индекс для системы инвентаря
-                    slot.SetItem(item);
-                }
+                freeSlot.slotIndex = i;
+                freeSlot.SetItem(item);
             }
         }
     }
@@ -154,9 +156,36 @@ public class UIManagerShop : MonoBehaviour
     {
         if (ShopSystem.Instance == null) return;
 
+        // Очистка обязательна, чтобы не дублировалось
+        ClearGrid(shopFoodGrid);
+        ClearGrid(shopPotionsGrid);
+        ClearGrid(shopClothingGrid);
+
+        int foodCount = 0;
+        int potionCount = 0;
+        int clothCount = 0;
+
         foreach (ItemData item in ShopSystem.Instance.AllItems)
         {
-            Transform targetGrid = GetTargetGrid(item.itemType, false);
+            if (item == null) continue;
+
+            Transform targetGrid = null;
+
+            if (item.itemType == ItemType.Food && foodCount < 5)
+            {
+                targetGrid = shopFoodGrid;
+                foodCount++;
+            }
+            else if (item.itemType == ItemType.Potion && potionCount < 5)
+            {
+                targetGrid = shopPotionsGrid;
+                potionCount++;
+            }
+            else if (item.itemType == ItemType.Clothing && clothCount < 5)
+            {
+                targetGrid = shopClothingGrid;
+                clothCount++;
+            }
 
             if (targetGrid != null)
             {
@@ -168,6 +197,9 @@ public class UIManagerShop : MonoBehaviour
                 }
             }
         }
+
+        // ВОТ ЭТОТ ЛОГ ДОЛЖЕН БЫТЬ ТУТ
+        Debug.Log($"Магазин заполнен! Еда: {foodCount}, Зелья: {potionCount}, Одежда: {clothCount}");
     }
 
     // Универсальный помощник для выбора грида
@@ -218,7 +250,7 @@ public class UIManagerShop : MonoBehaviour
         else RefreshShopUI();
     }
 
-    private void RefreshShopUI()
+    public void RefreshShopUI()
     {
         RefreshGridSlots(shopFoodGrid);
         RefreshGridSlots(shopPotionsGrid);
@@ -238,5 +270,61 @@ public class UIManagerShop : MonoBehaviour
     private void UpdateMoneyDisplay(int money)
     {
         if (moneyText != null) moneyText.text = $"{money} серебра";
+    }
+
+
+    private void CreateInventorySlots()
+    {
+        CreateFixedSlots(invFoodGrid);
+        CreateFixedSlots(invPotionsGrid);
+        CreateFixedSlots(invClothingGrid);
+    }
+
+    private void CreateFixedSlots(Transform grid)
+    {
+        if (grid == null) return;
+
+        foreach (Transform child in grid)
+            Destroy(child.gameObject);
+
+        int slotsPerCategory = InventorySystem.Instance.maxSlots / 3;
+
+        for (int i = 0; i < slotsPerCategory; i++)
+        {
+            GameObject slotObj = Instantiate(inventorySlotPrefab, grid);
+            InventorySlot slot = slotObj.GetComponent<InventorySlot>();
+            if (slot != null)
+                slot.ClearSlot(); // ВАЖНО: сразу пустой
+        }
+    }
+
+    private void ClearInventorySlots()
+    {
+        ClearSlots(invFoodGrid);
+        ClearSlots(invPotionsGrid);
+        ClearSlots(invClothingGrid);
+    }
+
+    private void ClearSlots(Transform grid)
+    {
+        if (grid == null) return;
+
+        foreach (Transform child in grid)
+        {
+            InventorySlot slot = child.GetComponent<InventorySlot>();
+            if (slot != null)
+                slot.ClearSlot();
+        }
+    }
+
+    private InventorySlot GetFirstEmptySlot(Transform grid)
+    {
+        foreach (Transform child in grid)
+        {
+            InventorySlot slot = child.GetComponent<InventorySlot>();
+            if (slot != null && slot.IsEmpty)
+                return slot;
+        }
+        return null;
     }
 }
