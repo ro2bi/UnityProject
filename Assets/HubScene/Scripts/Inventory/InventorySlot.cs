@@ -1,4 +1,4 @@
-using UnityEngine;
+п»їusing UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System;
@@ -6,7 +6,12 @@ using System;
 public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler,
                               IDropHandler, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
-    [Header("UI компоненты")]
+    private void OnEnable()
+    {
+        Debug.Log("рџџў InventorySlot ENABLED: " + gameObject.name);
+    }
+
+    [Header("UI РєРѕРјРїРѕРЅРµРЅС‚С‹")]
     public Image itemIcon;
     public GameObject emptySlotIndicator;
 
@@ -52,12 +57,12 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             emptySlotIndicator.SetActive(true);
     }
 
-    // Начало перетаскивания
+    // РќР°С‡Р°Р»Рѕ РїРµСЂРµС‚Р°СЃРєРёРІР°РЅРёСЏ
     public void OnBeginDrag(PointerEventData eventData)
     {
         if (currentItem == null) return;
 
-        // Создаем временный объект для визуального перетаскивания
+        // РЎРѕР·РґР°РµРј РІСЂРµРјРµРЅРЅС‹Р№ РѕР±СЉРµРєС‚ РґР»СЏ РІРёР·СѓР°Р»СЊРЅРѕРіРѕ РїРµСЂРµС‚Р°СЃРєРёРІР°РЅРёСЏ
         draggedObject = new GameObject("DraggedItem");
         draggedObject.transform.SetParent(canvas.transform);
         draggedObject.transform.SetAsLastSibling();
@@ -72,13 +77,13 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         originalPosition = transform.position;
         originalParent = transform.parent;
 
-        // Делаем оригинальную иконку полупрозрачной
+        // Р”РµР»Р°РµРј РѕСЂРёРіРёРЅР°Р»СЊРЅСѓСЋ РёРєРѕРЅРєСѓ РїРѕР»СѓРїСЂРѕР·СЂР°С‡РЅРѕР№
         Color color = itemIcon.color;
         color.a = 0.5f;
         itemIcon.color = color;
     }
 
-    // Во время перетаскивания
+    // Р’Рѕ РІСЂРµРјСЏ РїРµСЂРµС‚Р°СЃРєРёРІР°РЅРёСЏ
     public void OnDrag(PointerEventData eventData)
     {
         if (draggedObject != null)
@@ -87,7 +92,7 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         }
     }
 
-    // Конец перетаскивания
+    // РљРѕРЅРµС† РїРµСЂРµС‚Р°СЃРєРёРІР°РЅРёСЏ
     public void OnEndDrag(PointerEventData eventData)
     {
         if (draggedObject != null)
@@ -95,25 +100,25 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             Destroy(draggedObject);
         }
 
-        // Восстанавливаем прозрачность
+        // Р’РѕСЃСЃС‚Р°РЅР°РІР»РёРІР°РµРј РїСЂРѕР·СЂР°С‡РЅРѕСЃС‚СЊ
         Color color = itemIcon.color;
         color.a = 1f;
         itemIcon.color = color;
     }
 
-    // Когда предмет сбрасывают на этот слот
+    // РљРѕРіРґР° РїСЂРµРґРјРµС‚ СЃР±СЂР°СЃС‹РІР°СЋС‚ РЅР° СЌС‚РѕС‚ СЃР»РѕС‚
     public void OnDrop(PointerEventData eventData)
     {
         InventorySlot draggedSlot = eventData.pointerDrag?.GetComponent<InventorySlot>();
 
         if (draggedSlot != null && draggedSlot != this)
         {
-            // Меняем местами предметы
+            // РњРµРЅСЏРµРј РјРµСЃС‚Р°РјРё РїСЂРµРґРјРµС‚С‹
             InventorySystem.Instance.MoveItem(draggedSlot.slotIndex, slotIndex);
         }
     }
 
-    // Наведение мыши
+    // РќР°РІРµРґРµРЅРёРµ РјС‹С€Рё
     public void OnPointerEnter(PointerEventData eventData)
     {
         if (currentItem != null && ItemTooltip.Instance != null)
@@ -128,19 +133,19 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             ItemTooltip.Instance.HideTooltip();
     }
 
-    // Клик мыши (ПКМ и двойной клик)
+    // РљР»РёРє РјС‹С€Рё (РџРљРњ Рё РґРІРѕР№РЅРѕР№ РєР»РёРє)
     public void OnPointerClick(PointerEventData eventData)
     {
         if (currentItem == null) return;
 
-        // Правый клик
+        // РџСЂР°РІС‹Р№ РєР»РёРє
         if (eventData.button == PointerEventData.InputButton.Right)
         {
             UseItem();
             return;
         }
 
-        // Двойной клик левой кнопкой
+        // Р”РІРѕР№РЅРѕР№ РєР»РёРє Р»РµРІРѕР№ РєРЅРѕРїРєРѕР№
         if (eventData.button == PointerEventData.InputButton.Left)
         {
             float timeSinceLastClick = Time.time - lastClickTime;
@@ -148,7 +153,7 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
             if (timeSinceLastClick <= doubleClickThreshold)
             {
                 UseItem();
-                lastClickTime = 0f; // Сбрасываем, чтобы не было тройного клика
+                lastClickTime = 0f; // РЎР±СЂР°СЃС‹РІР°РµРј, С‡С‚РѕР±С‹ РЅРµ Р±С‹Р»Рѕ С‚СЂРѕР№РЅРѕРіРѕ РєР»РёРєР°
             }
             else
             {
@@ -159,15 +164,27 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     private void UseItem()
     {
+        if (currentItem == null)
+        {
+            Debug.LogWarning("UseItem РІС‹Р·РІР°РЅ, РЅРѕ СЃР»РѕС‚ РїСѓСЃС‚");
+            return;
+        }
+
+        if (InventorySystem.Instance == null)
+        {
+            Debug.LogError("InventorySystem.Instance == null");
+            return;
+        }
+
         InventorySystem.Instance.UseItem(currentItem);
         ItemTooltip.Instance.HideTooltip();
     }
 
-    // Методы для тултипа (вызываются из ItemTooltip)
+    // РњРµС‚РѕРґС‹ РґР»СЏ С‚СѓР»С‚РёРїР° (РІС‹Р·С‹РІР°СЋС‚СЃСЏ РёР· ItemTooltip)
     public void OnBuyButtonClicked()
     {
-        // В инвентаре кнопка "купить" не имеет смысла
-        // Но можем оставить для единообразия или удалить
+        // Р’ РёРЅРІРµРЅС‚Р°СЂРµ РєРЅРѕРїРєР° "РєСѓРїРёС‚СЊ" РЅРµ РёРјРµРµС‚ СЃРјС‹СЃР»Р°
+        // РќРѕ РјРѕР¶РµРј РѕСЃС‚Р°РІРёС‚СЊ РґР»СЏ РµРґРёРЅРѕРѕР±СЂР°Р·РёСЏ РёР»Рё СѓРґР°Р»РёС‚СЊ
     }
 
     public void OnSellButtonClicked()

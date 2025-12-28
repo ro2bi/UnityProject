@@ -45,6 +45,7 @@ public class InventorySystem : MonoBehaviour
     private void Start()
     {
         LoadInventory();
+        
     }
 
     // Добавить предмет в инвентарь

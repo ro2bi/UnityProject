@@ -1,18 +1,17 @@
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
-[RequireComponent(typeof(Collider2D))]
 public class WeightObject : MonoBehaviour
 {
-    public float weight; // масса предмета
+    [Header("Physics")]
+    public float weight = 1f; // Влияет на прыжок
+
+    [Header("Logic")]
+    public int numericValue;  // Само число (например, 2, 5, 9)
 
     private void Start()
     {
-        // Автоматически устанавливаем массу в Rigidbody2D
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
-        if (rb != null)
-        {
-            rb.mass = weight;
-        }
+        if (rb != null) rb.mass = weight;
     }
 }

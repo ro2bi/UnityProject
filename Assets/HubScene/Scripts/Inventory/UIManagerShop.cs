@@ -120,6 +120,8 @@ public class UIManagerShop : MonoBehaviour
 
     private void RefreshInventoryUI()
     {
+        Debug.Log("RefreshInventoryUI вызван");
+
         if (InventorySystem.Instance == null) return;
 
         ClearInventorySlots();
