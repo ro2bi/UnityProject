@@ -3,7 +3,6 @@ using System.Collections;
 
 public class PlayerMovementNew : MonoBehaviour
 {
-    // ... (Твои существующие переменные)
     [Header("Movement")]
     public float speed = 5f;
 
@@ -15,13 +14,15 @@ public class PlayerMovementNew : MonoBehaviour
     private float currentJumpHeight;
     private float currentJumpDuration;
 
-    // 🔥 НОВЫЙ РАЗДЕЛ: ПОДБОР И ВЕС
-    [Header("Pickup System")]
-    public Transform holdPoint;       // Пустой объект перед игроком, куда "прилипнет" буква
-    public float pickupRange = 1.2f;  // Радиус поиска предметов/слотов
-    private WeightObject carriedItem; // Ссылка на то, что мы сейчас несем
+    // 🔥 НОВОЕ: Множитель гравитации (G)
+    [Header("Gravity (G) System")]
+    public float gravityMultiplier = 1f; // 1 = норма, >1 = тяжелый, <1 = легкий
 
-    // ... (Остальные твои переменные: Ground Check, Fall, Checkpoint и т.д.)
+    [Header("Pickup System")]
+    public Transform holdPoint;
+    public float pickupRange = 1.2f;
+    private WeightObject carriedItem;
+
     [Header("Ground Check")]
     public Transform groundCheck;
     public float groundCheckRadius = 0.3f;
@@ -57,9 +58,6 @@ public class PlayerMovementNew : MonoBehaviour
     private Vector3 visualStartPos;
     private Vector3 lastSafePosition;
 
-    // =========================
-    // START
-    // =========================
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -89,14 +87,10 @@ public class PlayerMovementNew : MonoBehaviour
         }
     }
 
-    // =========================
-    // UPDATE
-    // =========================
     void Update()
     {
         if (isDead || isFalling) return;
 
-        // ВЗАИМОДЕЙСТВИЕ (Кнопка E)
         if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.INTERACT)))
         {
             HandleInteraction();
@@ -141,12 +135,10 @@ public class PlayerMovementNew : MonoBehaviour
         }
     }
 
-    // НОВАЯ ЛОГИКА: ВЗАИМОДЕЙСТВИЕ
     private void HandleInteraction()
     {
         if (carriedItem == null)
         {
-            // Пытаемся подобрать
             Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, pickupRange);
             foreach (var hit in hits)
             {
@@ -160,7 +152,6 @@ public class PlayerMovementNew : MonoBehaviour
         }
         else
         {
-            // Пытаемся вставить в слот уравнения
             Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, pickupRange);
             foreach (var hit in hits)
             {
@@ -171,7 +162,6 @@ public class PlayerMovementNew : MonoBehaviour
                     return;
                 }
             }
-            // Если слота нет рядом — просто бросаем
             Drop();
         }
     }
@@ -182,51 +172,72 @@ public class PlayerMovementNew : MonoBehaviour
         item.GetComponent<Rigidbody2D>().isKinematic = true;
         item.transform.SetParent(holdPoint);
         item.transform.localPosition = Vector3.zero;
-
-        // Утяжеляем персонажа: уменьшаем высоту прыжка на основе веса
-        // (чем тяжелее вес, тем ниже прыжок)
         currentJumpHeight -= (item.weight * 0.05f);
     }
 
-    
-
     private void Drop()
     {
+        if (carriedItem == null) return;
+
+        // 1. Сохраняем текущую позицию в МИРОВЫХ координатах
+        Vector3 worldPos = carriedItem.transform.position;
+
+        // 2. Сначала отцепляем от родителя
         carriedItem.transform.SetParent(null);
-        carriedItem.GetComponent<Rigidbody2D>().isKinematic = false;
+
+        // 3. Сразу после этого принудительно ставим в сохраненную мировую позицию
+        // Это предотвратит скачки из-за масштаба (Scale)
+        carriedItem.transform.position = worldPos;
+
+        // 4. Работа с физикой
+        Rigidbody2D itemRb = carriedItem.GetComponent<Rigidbody2D>();
+        if (itemRb != null)
+        {
+            itemRb.isKinematic = false;
+            itemRb.gravityScale = 0; // Для топ-дауна строго 0
+            itemRb.velocity = Vector2.zero; // Гасим инерцию
+        }
+
+        // 5. САМОЕ ВАЖНОЕ: Чтобы предмет не "взорвался" при столкновении с игроком,
+        // немного отодвинем его в сторону, куда смотрел игрок.
+        carriedItem.transform.position += (Vector3)lastMoveDirection * 0.5f;
+
         carriedItem = null;
         ResetJumpParameters();
     }
 
     // =========================
-    // JUMP (Изменен для учета веса)
+    // JUMP (Учитывает G)
+    // =========================
+    // =========================
+    // JUMP (Измененный для влияния G на высоту и время)
     // =========================
     IEnumerator JumpRoutine()
     {
         isJumping = true;
         anim?.SetTrigger("Jump");
 
-        // Если несем предмет, прыжок может стать короче (эффект g)
-        float jumpTime = currentJumpDuration;
-        float jumpH = currentJumpHeight;
+        // Формула: чем меньше gravityMultiplier, тем больше высота и время
+        float jumpTime = currentJumpDuration / gravityMultiplier;
+        float jumpH = currentJumpHeight / gravityMultiplier;
 
         float half = jumpTime / 2f;
         float t = 0;
 
+        // Взлет
         while (t < half)
         {
             t += Time.deltaTime;
-            visual.localPosition = visualStartPos + Vector3.up *
-                Mathf.Lerp(0, jumpH, t / half);
+            visual.localPosition = visualStartPos + Vector3.up * Mathf.Lerp(0, jumpH, t / half);
             yield return null;
         }
 
         t = 0;
+        // Падение на землю
         while (t < half)
         {
             t += Time.deltaTime;
-            visual.localPosition = visualStartPos + Vector3.up *
-                Mathf.Lerp(jumpH, 0, t / half);
+            visual.localPosition = visualStartPos + Vector3.up * Mathf.Lerp(jumpH, 0, t / half);
             yield return null;
         }
 
@@ -237,12 +248,14 @@ public class PlayerMovementNew : MonoBehaviour
             StartFall();
     }
 
-    // ... (Остальные твои методы: FixedUpdate, StartFall, FallRoutine, DeathRoutine, EndFall, IsGroundUnder, OnTriggerEnter2D)
     void FixedUpdate()
     {
         if (isDead) return;
         Vector2 dir = isFalling ? (Vector2)fallVelocity : (isJumping ? jumpDirection : moveInput);
-        if (isFalling) fallVelocity.y -= fallGravity * Time.fixedDeltaTime;
+
+        //  При падении учитываем множитель гравитации для горизонтального сноса
+        if (isFalling) fallVelocity.y -= (fallGravity * gravityMultiplier) * Time.fixedDeltaTime;
+
         rb.MovePosition(rb.position + dir * speed * Time.fixedDeltaTime);
     }
 
@@ -254,19 +267,44 @@ public class PlayerMovementNew : MonoBehaviour
         StartCoroutine(FallRoutine());
     }
 
+    // =========================
+    // FALL (Учитывает G)
+    // =========================
     IEnumerator FallRoutine()
     {
         isFalling = true;
         anim?.SetTrigger("Fall");
-        float timer = 0;
-        while (timer < maxFallTime)
+
+        float visualProgress = 0; // Для анимации движения вниз
+        float deathTimer = 0;      // Для отсчета реального времени до смерти
+
+        // Пока не вышло РЕАЛЬНОЕ время (maxFallTime)
+        while (deathTimer < maxFallTime)
         {
-            timer += Time.deltaTime;
-            float y = Mathf.Lerp(0, -fallDepth, timer / maxFallTime);
+            // 1. Считаем реальное время (не зависит от G)
+            deathTimer += Time.deltaTime;
+
+            // 2. Считаем прогресс падения (зависит от G)
+            // При G=10 visualProgress станет равным 1 за 0.3 секунды
+            visualProgress += (Time.deltaTime / maxFallTime) * gravityMultiplier;
+            visualProgress = Mathf.Clamp01(visualProgress); // Ограничиваем от 0 до 1
+
+            // 3. Двигаем спрайт вниз
+            float y = Mathf.Lerp(0, -fallDepth, visualProgress);
             visual.localPosition = visualStartPos + Vector3.up * y;
-            if (IsGroundUnder()) { anim?.SetTrigger("Land"); EndFall(); yield break; }
+
+            // 4. Проверяем, коснулись ли мы пола (дна ямы)
+            if (IsGroundUnder())
+            {
+                anim?.SetTrigger("Land");
+                EndFall();
+                yield break;
+            }
+
             yield return null;
         }
+
+        // Если за 3 секунды реального времени мы так и не нашли землю — умираем
         yield return StartCoroutine(DeathRoutine());
     }
 
@@ -308,15 +346,11 @@ public class PlayerMovementNew : MonoBehaviour
         }
     }
 
-    // =========================
-    // JUMP ZONE SUPPORT (Твои методы)
-    // =========================
     public void SetJumpParameters(float height, float duration)
     {
         currentJumpHeight = height;
         currentJumpDuration = duration;
 
-        // Если при этом мы несем предмет, он ДОПОЛНИТЕЛЬНО занижает прыжок в этой зоне
         if (carriedItem != null)
             currentJumpHeight -= (carriedItem.weight * 0.05f);
     }
@@ -325,8 +359,8 @@ public class PlayerMovementNew : MonoBehaviour
     {
         currentJumpHeight = defaultJumpHeight;
         currentJumpDuration = defaultJumpDuration;
+        //gravityMultiplier = 1f; // Сброс G в норму
 
-        // Если бросили предмет, но мы в зоне, зона вернет свои параметры через OnTriggerStay
         if (carriedItem != null)
             currentJumpHeight -= (carriedItem.weight * 0.05f);
     }
@@ -356,10 +390,8 @@ public class PlayerMovementNew : MonoBehaviour
 
     private void PlaceIntoSlot(EquationSlot slot)
     {
-        // Мы передаем весь объект carriedItem в слот
         slot.InsertItem(carriedItem);
-
         carriedItem = null;
-        ResetJumpParameters(); // Возвращаем прыжок в норму после того, как избавились от тяжести
+        ResetJumpParameters();
     }
 }

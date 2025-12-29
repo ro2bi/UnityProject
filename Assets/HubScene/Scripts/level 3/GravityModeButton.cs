@@ -1,11 +1,14 @@
-using UnityEngine;
+п»їusing UnityEngine;
 
 public class GravityModeButton : MonoBehaviour
 {
     [Header("Settings")]
-    public float targetHeight = 0.2f;    // Насколько высоко прыгнет
-    public float targetDuration = 0.2f;  // Как быстро упадет (чем меньше, тем резче g)
-    public float moveSpeed = 3f;         // Можно менять и скорость ходьбы
+    public float targetHeight = 0.2f;
+    public float targetDuration = 0.2f;
+    public float moveSpeed = 3f;
+
+    // РќРћР’РћР•: Р—РЅР°С‡РµРЅРёРµ G РґР»СЏ СЌС‚РѕР№ РєРЅРѕРїРєРё
+    public float gravityG = 1.0f; //  5.0 РґР»СЏ Р±РѕР»СЊС€РѕРіРѕ G
 
     private void OnTriggerEnter2D(Collider2D other)
     {
@@ -13,14 +16,17 @@ public class GravityModeButton : MonoBehaviour
         {
             PlayerMovementNew player = other.GetComponent<PlayerMovementNew>();
 
-            // 1. Меняем базовые параметры в скрипте игрока навсегда (до следующей кнопки)
-            player.defaultJumpHeight = targetHeight;
-            player.defaultJumpDuration = targetDuration;
-            player.speed = moveSpeed;
+            if (player != null)
+            {
+                player.defaultJumpHeight = targetHeight;
+                player.defaultJumpDuration = targetDuration;
+                player.speed = moveSpeed;
 
-            // 2. Обновляем текущие параметры (с учетом веса предмета в руках)
-            player.ResetJumpParameters();
+                // РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј G
+                player.gravityMultiplier = gravityG;
 
+                player.ResetJumpParameters();
+            }
         }
     }
 }
