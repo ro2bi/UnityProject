@@ -2,6 +2,7 @@
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
+using System.Collections;
 
 public class ShopSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
@@ -27,25 +28,20 @@ public class ShopSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
                 itemIcon.sprite = item.icon;
                 itemIcon.enabled = true;
             }
-
             UpdateSlotUI();
         }
     }
 
-    // Метод для обновления всех текстовых данных в слоте
+    // Этот метод вызывается твоим UIManagerShop
     public void UpdateSlotUI()
     {
         if (item == null) return;
 
-        // Обновляем количество в инвентаре
         UpdateInventoryCount();
 
-        // Обновляем цену и её цвет
         if (priceText != null)
         {
             priceText.text = $"{item.buyPrice}";
-
-            // Проверка: хватает ли денег
             if (InventorySystem.Instance != null)
             {
                 bool canAfford = InventorySystem.Instance.CurrentMoney >= item.buyPrice;
@@ -54,6 +50,7 @@ public class ShopSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         }
     }
 
+    // Этот метод вызывается твоим UIManagerShop (именно на него была ошибка)
     public void UpdateInventoryCount()
     {
         if (item != null && inventoryCountText != null && InventorySystem.Instance != null)
@@ -63,23 +60,26 @@ public class ShopSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         }
     }
 
-    // Наведение мыши
+    private Coroutine delayCoroutine;
+
     public void OnPointerEnter(PointerEventData eventData)
     {
-        // Добавлена проверка на null для безопасности
-        if (item != null && ItemTooltip.Instance != null)
-        {
-            ItemTooltip.Instance.ShowTooltip(item, false);
-        }
+        if (item != null)
+            delayCoroutine = StartCoroutine(ShowWithDelay());
     }
 
-    // Уход мыши
     public void OnPointerExit(PointerEventData eventData)
     {
-        if (ItemTooltip.Instance != null)
-        {
-            ItemTooltip.Instance.HideTooltip();
-        }
+        if (delayCoroutine != null) StopCoroutine(delayCoroutine);
+        Invoke("CheckHide", 0.1f);
+    }
+
+    private void CheckHide() => ItemTooltip.Instance.HideTooltip();
+
+    private IEnumerator ShowWithDelay()
+    {
+        yield return new WaitForSeconds(1.0f);
+        ItemTooltip.Instance.ShowTooltip(item, false, transform.position);
     }
 
     public void OnPointerClick(PointerEventData eventData)
@@ -88,6 +88,11 @@ public class ShopSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         {
             OnBuyButtonClicked();
         }
+        else if (eventData.button == PointerEventData.InputButton.Right)
+        {
+            // ПКМ в магазине тоже может принудительно вызвать тултип
+            ItemTooltip.Instance.ShowTooltip(item, false, transform.position);
+        }
     }
 
     public void OnBuyButtonClicked()
@@ -95,22 +100,14 @@ public class ShopSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         if (item != null && InventorySystem.Instance != null)
         {
             bool success = InventorySystem.Instance.BuyItem(item);
-
             if (success)
             {
-                Debug.Log($"Куплен предмет: {item.itemName}");
+                // Если покупка удалась, обновляем тултип и сам слот
+                UpdateSlotUI();
+                ItemTooltip.Instance.ShowTooltip(item, false, transform.position);
 
-                // Сразу обновляем весь UI магазина, чтобы пересчитать цвета цен у ВСЕХ предметов
-                UIManagerShop.Instance.RefreshShopUI();
-
-                if (ItemTooltip.Instance != null)
-                {
-                    ItemTooltip.Instance.ShowTooltip(item, false);
-                }
-            }
-            else
-            {
-                Debug.Log($"Недостаточно денег для покупки: {item.itemName}");
+                // Если у тебя есть UIManagerShop.Instance, можно вызвать обновление всего магазина:
+                // UIManagerShop.Instance.RefreshShopUI(); 
             }
         }
     }

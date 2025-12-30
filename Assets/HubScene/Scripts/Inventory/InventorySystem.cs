@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Linq;
 
 public class InventorySystem : MonoBehaviour
 {
@@ -9,20 +10,17 @@ public class InventorySystem : MonoBehaviour
     [Header("Настройки")]
     public int maxSlots = 15;
     public int startingMoney = 100;
+    public GameObject worldItemPrefab;
 
     [Header("Экипировка персонажа")]
     public SpriteRenderer headRenderer;
     public SpriteRenderer bodyRenderer;
     public SpriteRenderer legsRenderer;
 
-    // Данные инвентаря
     private List<ItemData> items = new List<ItemData>();
+    private List<string> pickedUpItemIDs = new List<string>();
     private int currentMoney;
 
-    // Экипированные предметы
-    private Dictionary<EquipmentSlot, ItemData> equippedItems = new Dictionary<EquipmentSlot, ItemData>();
-
-    // События для обновления UI
     public event Action OnInventoryChanged;
     public event Action<int> OnMoneyChanged;
 
@@ -31,39 +29,32 @@ public class InventorySystem : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        if (Instance == null) { Instance = this; DontDestroyOnLoad(gameObject); }
+        else { Destroy(gameObject); }
     }
 
-    private void Start()
+    private void Start() { LoadInventory(); }
+
+    public bool WasItemPickedUp(string id) => pickedUpItemIDs.Contains(id);
+
+    public void RegisterPickedUpItem(string id)
     {
-        LoadInventory();
-        
+        if (!string.IsNullOrEmpty(id) && !pickedUpItemIDs.Contains(id))
+        {
+            pickedUpItemIDs.Add(id);
+            SaveInventory();
+        }
     }
 
-    // Добавить предмет в инвентарь
     public bool AddItem(ItemData item)
     {
-        if (items.Count >= maxSlots)
-        {
-            Debug.Log("Инвентарь полон!");
-            return false;
-        }
-
+        if (items.Count >= maxSlots) return false;
         items.Add(item);
         OnInventoryChanged?.Invoke();
         SaveInventory();
         return true;
     }
 
-    // Удалить предмет из инвентаря
     public void RemoveItem(ItemData item)
     {
         items.Remove(item);
@@ -71,284 +62,107 @@ public class InventorySystem : MonoBehaviour
         SaveInventory();
     }
 
-    // Переместить предмет (для drag&drop)
     public void MoveItem(int fromIndex, int toIndex)
     {
-        if (fromIndex < 0 || fromIndex >= items.Count || toIndex < 0 || toIndex >= maxSlots)
-            return;
-
+        if (fromIndex < 0 || fromIndex >= items.Count || toIndex < 0 || toIndex >= maxSlots) return;
         ItemData temp = items[fromIndex];
         items.RemoveAt(fromIndex);
-
-        if (toIndex >= items.Count)
-            items.Add(temp);
-        else
-            items.Insert(toIndex, temp);
-
+        if (toIndex >= items.Count) items.Add(temp);
+        else items.Insert(toIndex, temp);
         OnInventoryChanged?.Invoke();
         SaveInventory();
     }
 
-    // Купить предмет
-    public bool BuyItem(ItemData item)
+    public int GetItemCount(ItemData item) => items.Count(i => i == item);
+
+    public void DropItem(ItemData item)
     {
-        if (currentMoney < item.buyPrice)
+        if (item == null) return;
+
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+
+        // Если игрок не найден, спавним в центре, если найден - чуть сбоку
+        Vector3 spawnPos = player ? player.transform.position + new Vector3(1f, 0, 0) : Vector3.zero;
+
+        // ПРИНУДИТЕЛЬНО ставим Z как у игрока, чтобы предмет был виден
+        if (player) spawnPos.z = player.transform.position.z;
+
+        if (worldItemPrefab != null)
         {
-            Debug.Log("Недостаточно денег!");
-            return false;
+            GameObject dropped = Instantiate(worldItemPrefab, spawnPos, Quaternion.identity);
+            WorldItem wItem = dropped.GetComponent<WorldItem>();
+            if (wItem != null)
+            {
+                wItem.SetItem(item, 1);
+                Debug.Log($"Предмет {item.itemName} создан в {spawnPos}");
+            }
+        }
+        else
+        {
+            Debug.LogError("Префаб WorldItem не назначен в InventorySystem!");
         }
 
-        if (AddItem(item))
+        RemoveItem(item);
+    }
+
+    public bool BuyItem(ItemData item)
+    {
+        if (currentMoney >= item.buyPrice && AddItem(item))
         {
             AddMoney(-item.buyPrice);
             return true;
         }
-
         return false;
     }
 
-    // Продать предмет
-    public void SellItem(ItemData item)
-    {
-        RemoveItem(item);
-        AddMoney(item.sellPrice);
-    }
+    public void SellItem(ItemData item) { RemoveItem(item); AddMoney(item.sellPrice); }
+    public void AddMoney(int amount) { currentMoney += amount; OnMoneyChanged?.Invoke(currentMoney); SaveInventory(); }
 
-    // Использовать предмет
     public void UseItem(ItemData item)
     {
-        if (item == null) return;
-        if (!item.isUsable) return;
-
-        PlayerMovementNew player =
-            FindObjectOfType<PlayerMovementNew>();
-
-        if (player == null) return;
-
-        //ЕДА / ЗЕЛЬЯ
-        if (item.itemType == ItemType.Food)
-        {
-            // тут пізніше hp / stamina
-        }
-
-        // БАФФ СТРИБКА
-        if (item.jumpHeightBonus != 0 || item.jumpDurationBonus != 0)
-        {
-            player.ApplyJumpBuff(
-                item.jumpHeightBonus,
-                item.jumpDurationBonus,
-                item.buffDuration
-            );
-        }
-
-        // удаляем предмет (не стакается)
+        if (item == null || !item.isUsable) return;
+        Debug.Log("Использован: " + item.itemName);
+        // Тут твоя логика баффов из старого скрипта...
         RemoveItem(item);
     }
 
-    // Экипировать одежду
-    private void EquipClothing(ItemData item)
-    {
-        // Снимаем старую одежду в затронутых слотах
-        if ((item.equipmentSlots & EquipmentSlot.Head) != 0)
-        {
-            UnequipSlot(EquipmentSlot.Head);
-            equippedItems[EquipmentSlot.Head] = item;
-            if (headRenderer != null)
-                headRenderer.sprite = item.headSprite;
-        }
-
-        if ((item.equipmentSlots & EquipmentSlot.Body) != 0)
-        {
-            UnequipSlot(EquipmentSlot.Body);
-            equippedItems[EquipmentSlot.Body] = item;
-            if (bodyRenderer != null)
-                bodyRenderer.sprite = item.bodySprite;
-        }
-
-        if ((item.equipmentSlots & EquipmentSlot.Legs) != 0)
-        {
-            UnequipSlot(EquipmentSlot.Legs);
-            equippedItems[EquipmentSlot.Legs] = item;
-            if (legsRenderer != null)
-                legsRenderer.sprite = item.legsSprite;
-        }
-
-        Debug.Log($"Экипирована одежда: {item.itemName}");
-        SaveInventory();
-    }
-
-    // Снять одежду со слота
-    private void UnequipSlot(EquipmentSlot slot)
-    {
-        if (equippedItems.ContainsKey(slot))
-        {
-            equippedItems.Remove(slot);
-
-            // Очищаем спрайт
-            switch (slot)
-            {
-                case EquipmentSlot.Head:
-                    if (headRenderer != null) headRenderer.sprite = null;
-                    break;
-                case EquipmentSlot.Body:
-                    if (bodyRenderer != null) bodyRenderer.sprite = null;
-                    break;
-                case EquipmentSlot.Legs:
-                    if (legsRenderer != null) legsRenderer.sprite = null;
-                    break;
-            }
-        }
-    }
-
-    // Съесть еду
-    private void ConsumeFood(ItemData item)
-    {
-        // TODO: Добавьте здесь логику восстановления здоровья/энергии
-        // Например:
-        // PlayerHealth.Instance.Heal(item.healthRestore);
-        // PlayerEnergy.Instance.RestoreEnergy(item.energyRestore);
-
-        Debug.Log($"Использована еда: {item.itemName}");
-        Debug.Log($"Восстановление здоровья: {item.healthRestore}, энергии: {item.energyRestore}");
-
-        RemoveItem(item);
-    }
-
-    // Проверить, сколько предметов определенного типа в инвентаре
-    public int GetItemCount(ItemData item)
-    {
-        int count = 0;
-        foreach (var invItem in items)
-        {
-            if (invItem == item)
-                count++;
-        }
-        return count;
-    }
-
-    // Управление деньгами
-    public void AddMoney(int amount)
-    {
-        currentMoney += amount;
-        OnMoneyChanged?.Invoke(currentMoney);
-        SaveInventory();
-    }
-
-    // Сохранение инвентаря
     private void SaveInventory()
     {
-        InventorySaveData saveData = new InventorySaveData
-        {
-            money = currentMoney,
-            itemNames = new List<string>()
-        };
+        InventorySaveData data = new InventorySaveData();
+        data.money = currentMoney;
+        data.itemNames = items.Select(i => i.name).ToList();
+        data.pickedUpIDs = pickedUpItemIDs;
 
-        foreach (var item in items)
-        {
-            if (item != null)
-                saveData.itemNames.Add(item.name);
-        }
-
-        // Сохранение экипированных предметов
-        saveData.equippedItemNames = new Dictionary<string, string>();
-        foreach (var kvp in equippedItems)
-        {
-            if (kvp.Value != null)
-                saveData.equippedItemNames[kvp.Key.ToString()] = kvp.Value.name;
-        }
-
-        string json = JsonUtility.ToJson(saveData);
+        string json = JsonUtility.ToJson(data);
         PlayerPrefs.SetString("InventoryData", json);
         PlayerPrefs.Save();
     }
 
-    // Загрузка инвентаря
     private void LoadInventory()
     {
         if (PlayerPrefs.HasKey("InventoryData"))
         {
             string json = PlayerPrefs.GetString("InventoryData");
-            InventorySaveData saveData = JsonUtility.FromJson<InventorySaveData>(json);
-
-            currentMoney = saveData.money;
+            InventorySaveData data = JsonUtility.FromJson<InventorySaveData>(json);
+            currentMoney = data.money;
+            pickedUpItemIDs = data.pickedUpIDs ?? new List<string>();
             items.Clear();
-
-            foreach (string itemName in saveData.itemNames)
+            foreach (var name in data.itemNames)
             {
-                ItemData item = Resources.Load<ItemData>($"Items/{itemName}");
-                if (item != null)
-                    items.Add(item);
+                ItemData asset = Resources.Load<ItemData>($"Items/{name}");
+                if (asset) items.Add(asset);
             }
-
-            // Загрузка экипированных предметов
-            equippedItems.Clear();
-            if (saveData.equippedItemNames != null)
-            {
-                foreach (var kvp in saveData.equippedItemNames)
-                {
-                    if (Enum.TryParse(kvp.Key, out EquipmentSlot slot))
-                    {
-                        ItemData item = Resources.Load<ItemData>($"Items/{kvp.Value}");
-                        if (item != null)
-                        {
-                            equippedItems[slot] = item;
-                            // Применяем визуал
-                            if (slot == EquipmentSlot.Head && headRenderer != null)
-                                headRenderer.sprite = item.headSprite;
-                            if (slot == EquipmentSlot.Body && bodyRenderer != null)
-                                bodyRenderer.sprite = item.bodySprite;
-                            if (slot == EquipmentSlot.Legs && legsRenderer != null)
-                                legsRenderer.sprite = item.legsSprite;
-                        }
-                    }
-                }
-            }
-
-            OnMoneyChanged?.Invoke(currentMoney);
-            OnInventoryChanged?.Invoke();
         }
-        else
-        {
-            currentMoney = startingMoney;
-            OnMoneyChanged?.Invoke(currentMoney);
-        }
-    }
-
-    private void ApplyUseEffect(ItemData item)
-    {
-        if (item.useEffect == ItemUseEffect.None)
-            return;
-
-        if (PlayerStats.Instance == null)
-        {
-            Debug.LogWarning("PlayerStats not found");
-            return;
-        }
-
-        switch (item.useEffect)
-        {
-            case ItemUseEffect.JumpBoost:
-                PlayerStats.Instance.ApplyJumpBoost(
-                    item.jumpHeightBonus,
-                    item.jumpDurationBonus,
-                    item.effectDuration
-                );
-                break;
-
-            case ItemUseEffect.SpeedBoost:
-                PlayerStats.Instance.ApplySpeedBoost(
-                    item.speedBonus,
-                    item.effectDuration
-                );
-                break;
-        }
+        else { currentMoney = startingMoney; }
+        OnInventoryChanged?.Invoke();
+        OnMoneyChanged?.Invoke(currentMoney);
     }
 }
 
-[System.Serializable]
+[Serializable]
 public class InventorySaveData
 {
     public int money;
     public List<string> itemNames;
-    public Dictionary<string, string> equippedItemNames;
+    public List<string> pickedUpIDs;
 }

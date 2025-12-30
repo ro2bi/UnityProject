@@ -6,6 +6,10 @@ public class WorldItem : MonoBehaviour
     public ItemData item;
     public int amount = 1;
 
+    [Header("Сохранение")]
+    [Tooltip("Уникальный ID для предметов на сцене. Для выброшенных предметов оставьте пустым.")]
+    public string uniqueID;
+
     [Header("Визуал (опционально)")]
     public SpriteRenderer spriteRenderer;
 
@@ -13,15 +17,46 @@ public class WorldItem : MonoBehaviour
 
     private void Start()
     {
-        // Автоматически устанавливаем иконку предмета
+        // Проверка на дубликаты
+        if (!string.IsNullOrEmpty(uniqueID) && InventorySystem.Instance.WasItemPickedUp(uniqueID))
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        // ПРИМЕНЯЕМ РАЗМЕР ИЗ ITEMDATA
+        ApplyScale();
+
         if (item != null && spriteRenderer != null)
         {
             spriteRenderer.sprite = item.icon;
         }
     }
 
+    public void SetItem(ItemData newItem, int newAmount = 1)
+    {
+        item = newItem;
+        amount = newAmount;
+        uniqueID = "";
+
+        ApplyScale(); // ПРИМЕНЯЕМ РАЗМЕР ПРИ ВЫБРОСЕ
+
+        if (spriteRenderer != null && item != null)
+            spriteRenderer.sprite = item.icon;
+    }
+
+    private void ApplyScale()
+    {
+        if (item != null)
+        {
+            // Устанавливаем масштаб объекта по всем осям
+            transform.localScale = new Vector3(item.worldScale, item.worldScale, 1f);
+        }
+    }
+
     private void Update()
     {
+        // Проверка нажатия кнопки взаимодействия
         if (canPickUp && Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.INTERACT)))
         {
             TryPickUp();
@@ -32,11 +67,10 @@ public class WorldItem : MonoBehaviour
     {
         if (item == null)
         {
-            Debug.LogWarning("⚠️ WorldItem: Предмет не назначен!");
+            Debug.LogWarning("⚠WorldItem: Предмет не назначен!");
             return;
         }
 
-        // Пытаемся добавить предметы в инвентарь
         int addedCount = 0;
 
         for (int i = 0; i < amount; i++)
@@ -47,38 +81,32 @@ public class WorldItem : MonoBehaviour
             }
             else
             {
-                Debug.Log($"⚠️ Инвентарь полон! Подобрано {addedCount} из {amount}");
-
-                // Обновляем количество оставшихся предметов
+                Debug.Log($"Инвентарь полон! Подобрано {addedCount} из {amount}");
                 amount -= addedCount;
                 return;
             }
         }
 
-        Debug.Log($"✅ Подобрано: {item.itemName} x{addedCount}");
+        // БАГ 1: Если предмет на сцене имел уникальный ID, помечаем его как "подобранный"
+        if (!string.IsNullOrEmpty(uniqueID))
+        {
+            InventorySystem.Instance.RegisterPickedUpItem(uniqueID);
+        }
 
-        // Уничтожаем объект после подбора
+        Debug.Log($"Подобрано: {item.itemName} x{addedCount}");
         Destroy(gameObject);
     }
 
-    // ✅ Для 2D используем Collider2D
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
-        {
-            canPickUp = true;
-        }
+        if (other.CompareTag("Player")) canPickUp = true;
     }
 
     private void OnTriggerExit2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
-        {
-            canPickUp = false;
-        }
+        if (other.CompareTag("Player")) canPickUp = false;
     }
 
-    // Визуальная подсказка в редакторе
     private void OnDrawGizmos()
     {
         if (item != null)

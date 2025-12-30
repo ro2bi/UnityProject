@@ -31,3 +31,4 @@ MonoBehaviour:
   speedBonus: 0
   effectDuration: 5
   isUsable: 0
+  worldScale: 0.3

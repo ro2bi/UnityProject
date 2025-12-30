@@ -1,30 +1,22 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using System;
+using System.Collections;
+using System.Collections.Generic;
 
-public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler,
-                              IDropHandler, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
+public class InventorySlot : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler,
+                              IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-    private void OnEnable()
-    {
-        Debug.Log("🟢 InventorySlot ENABLED: " + gameObject.name);
-    }
-
-    [Header("UI компоненты")]
     public Image itemIcon;
     public GameObject emptySlotIndicator;
-
-    [HideInInspector]
-    public int slotIndex;
+    [HideInInspector] public int slotIndex;
 
     private ItemData currentItem;
+    private Coroutine delayCoroutine;
+    private GameObject dragIcon; // Временная иконка при перетаскивании
     private Canvas canvas;
-    private GameObject draggedObject;
-    private Vector3 originalPosition;
-    private Transform originalParent;
-    private float lastClickTime = 0f;
-    private const float doubleClickThreshold = 0.3f;
+
+    public bool IsEmpty => currentItem == null;
 
     private void Awake()
     {
@@ -34,18 +26,13 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     public void SetItem(ItemData item)
     {
         currentItem = item;
-
-        if (currentItem != null)
+        if (item != null)
         {
-            itemIcon.sprite = currentItem.icon;
+            itemIcon.sprite = item.icon;
             itemIcon.enabled = true;
-            if (emptySlotIndicator != null)
-                emptySlotIndicator.SetActive(false);
+            if (emptySlotIndicator) emptySlotIndicator.SetActive(false);
         }
-        else
-        {
-            ClearSlot();
-        }
+        else { ClearSlot(); }
     }
 
     public void ClearSlot()
@@ -53,151 +40,78 @@ public class InventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
         currentItem = null;
         itemIcon.sprite = null;
         itemIcon.enabled = false;
-        if (emptySlotIndicator != null)
-            emptySlotIndicator.SetActive(true);
+        if (emptySlotIndicator) emptySlotIndicator.SetActive(true);
     }
 
-    // Начало перетаскивания
+    // --- ЛОГИКА ПЕРЕТАСКИВАНИЯ (DRAG & DROP) ---
+
     public void OnBeginDrag(PointerEventData eventData)
     {
         if (currentItem == null) return;
 
-        // Создаем временный объект для визуального перетаскивания
-        draggedObject = new GameObject("DraggedItem");
-        draggedObject.transform.SetParent(canvas.transform);
-        draggedObject.transform.SetAsLastSibling();
+        // Создаем визуальную копию иконки для перетаскивания
+        dragIcon = new GameObject("DragIcon");
+        dragIcon.transform.SetParent(canvas.transform);
+        dragIcon.transform.SetAsLastSibling();
 
-        Image image = draggedObject.AddComponent<Image>();
-        image.sprite = currentItem.icon;
-        image.raycastTarget = false;
+        Image img = dragIcon.AddComponent<Image>();
+        img.sprite = currentItem.icon;
+        img.raycastTarget = false; // Чтобы иконка не мешала определять, над чем мышка
+        dragIcon.GetComponent<RectTransform>().sizeDelta = new Vector2(50, 50);
 
-        RectTransform rt = draggedObject.GetComponent<RectTransform>();
-        rt.sizeDelta = itemIcon.rectTransform.sizeDelta;
-
-        originalPosition = transform.position;
-        originalParent = transform.parent;
-
-        // Делаем оригинальную иконку полупрозрачной
-        Color color = itemIcon.color;
-        color.a = 0.5f;
-        itemIcon.color = color;
+        itemIcon.color = new Color(1, 1, 1, 0.5f); // Делаем иконку в слоте прозрачной
     }
 
-    // Во время перетаскивания
     public void OnDrag(PointerEventData eventData)
     {
-        if (draggedObject != null)
-        {
-            draggedObject.transform.position = eventData.position;
-        }
+        if (dragIcon != null)
+            dragIcon.transform.position = Input.mousePosition;
     }
 
-    // Конец перетаскивания
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (draggedObject != null)
+        if (dragIcon != null) Destroy(dragIcon);
+        itemIcon.color = Color.white;
+
+        // ПРОВЕРКА: Вынесли ли мы предмет за пределы UI?
+        // Если мышка НЕ над объектом UI, значит мы в мире
+        if (!EventSystem.current.IsPointerOverGameObject())
         {
-            Destroy(draggedObject);
-        }
-
-        // Восстанавливаем прозрачность
-        Color color = itemIcon.color;
-        color.a = 1f;
-        itemIcon.color = color;
-    }
-
-    // Когда предмет сбрасывают на этот слот
-    public void OnDrop(PointerEventData eventData)
-    {
-        InventorySlot draggedSlot = eventData.pointerDrag?.GetComponent<InventorySlot>();
-
-        if (draggedSlot != null && draggedSlot != this)
-        {
-            // Меняем местами предметы
-            InventorySystem.Instance.MoveItem(draggedSlot.slotIndex, slotIndex);
+            InventorySystem.Instance.DropItem(currentItem);
+            ItemTooltip.Instance.HideTooltip();
         }
     }
 
-    // Наведение мыши
+    // --- ОСТАЛЬНАЯ ЛОГИКА (ТУЛТИПЫ И КЛИКИ) ---
+
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (currentItem != null && ItemTooltip.Instance != null)
-        {
-            ItemTooltip.Instance.ShowTooltip(currentItem, true);
-        }
+        if (currentItem != null)
+            delayCoroutine = StartCoroutine(ShowWithDelay());
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        if (ItemTooltip.Instance != null)
-            ItemTooltip.Instance.HideTooltip();
+        if (delayCoroutine != null) StopCoroutine(delayCoroutine);
+
+        // Даем небольшую задержку перед скрытием, чтобы успеть перевести мышку
+        Invoke("CheckHide", 0.1f);
     }
 
-    // Клик мыши (ПКМ и двойной клик)
+    private void CheckHide() => ItemTooltip.Instance.HideTooltip();
+
+    private IEnumerator ShowWithDelay()
+    {
+        yield return new WaitForSeconds(1.0f);
+        ItemTooltip.Instance.ShowTooltip(currentItem, true, transform.position);
+    }
+
     public void OnPointerClick(PointerEventData eventData)
     {
         if (currentItem == null) return;
-
-        // Правый клик
         if (eventData.button == PointerEventData.InputButton.Right)
         {
-            UseItem();
-            return;
+            ItemTooltip.Instance.ShowTooltip(currentItem, true, transform.position);
         }
-
-        // Двойной клик левой кнопкой
-        if (eventData.button == PointerEventData.InputButton.Left)
-        {
-            float timeSinceLastClick = Time.time - lastClickTime;
-
-            if (timeSinceLastClick <= doubleClickThreshold)
-            {
-                UseItem();
-                lastClickTime = 0f; // Сбрасываем, чтобы не было тройного клика
-            }
-            else
-            {
-                lastClickTime = Time.time;
-            }
-        }
-    }
-
-    private void UseItem()
-    {
-        if (currentItem == null)
-        {
-            Debug.LogWarning("UseItem вызван, но слот пуст");
-            return;
-        }
-
-        if (InventorySystem.Instance == null)
-        {
-            Debug.LogError("InventorySystem.Instance == null");
-            return;
-        }
-
-        InventorySystem.Instance.UseItem(currentItem);
-        ItemTooltip.Instance.HideTooltip();
-    }
-
-    // Методы для тултипа (вызываются из ItemTooltip)
-    public void OnBuyButtonClicked()
-    {
-        // В инвентаре кнопка "купить" не имеет смысла
-        // Но можем оставить для единообразия или удалить
-    }
-
-    public void OnSellButtonClicked()
-    {
-        if (currentItem != null)
-        {
-            InventorySystem.Instance.SellItem(currentItem);
-            ItemTooltip.Instance.HideTooltip();
-        }
-    }
-
-    public bool IsEmpty
-    {
-        get { return currentItem == null; }
     }
 }

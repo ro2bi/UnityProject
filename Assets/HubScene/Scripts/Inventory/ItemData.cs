@@ -41,6 +41,9 @@ public class ItemData : ScriptableObject
 
     [Header("Use settings")]
     public bool isUsable = false;
+
+    [Header("Визуал в мире")]
+    public float worldScale = 1.0f;
 }
 
 public enum ItemType
