@@ -4,7 +4,7 @@ public class PlayerPickUp : MonoBehaviour
 {
     public Transform holdPoint;
     public float pickupDistance = 1f;
-    public Vector2 pickupDirection = Vector2.right; // ������������� �����������
+    public Vector2 pickupDirection = Vector2.right;
     private WeightObject currentObject;
 
     void Update()
@@ -22,7 +22,6 @@ public class PlayerPickUp : MonoBehaviour
     {
         Vector2 direction = transform.localScale.x > 0 ? Vector2.right : Vector2.left;
 
-        // ����� ���� ������� ������� ������
         Vector2 rayOrigin = (Vector2)transform.position + direction * 0.6f;
 
         Debug.DrawRay(rayOrigin, direction * pickupDistance, Color.green, 0.5f);

@@ -1,56 +1,82 @@
-using UnityEngine;
-using System.Linq; // Нужно для работы с массивами (метод Contains)
+п»їusing UnityEngine;
 
 public class EquationSlot : MonoBehaviour
 {
-    [Header("Settings")]
-    // Теперь это массив. В инспекторе нажми на "+", чтобы добавить несколько чисел
-    public int[] correctValues;
-
     public bool isOccupied = false;
-    public bool isCorrect = false;
+    public int currentValue;
+    private WeightObject currentItem;
 
-    [Header("Visual Feedback")]
+    [Header("Visual")]
+    public SpriteRenderer slotRenderer;
+    public Color occupiedColor = Color.yellow;
     public Color correctColor = Color.green;
     public Color wrongColor = Color.red;
-    private SpriteRenderer slotRenderer;
 
-    private void Awake()
-    {
-        slotRenderer = GetComponent<SpriteRenderer>();
-    }
+    private void Awake() => slotRenderer = GetComponent<SpriteRenderer>();
 
     public void InsertItem(WeightObject item)
     {
+        currentItem = item;
+        currentValue = item.numericValue;
         isOccupied = true;
 
-        // Физическое прикрепление
-        item.transform.SetParent(this.transform);
+        item.transform.SetParent(transform);
         item.transform.localPosition = Vector3.zero;
-        item.GetComponent<Rigidbody2D>().isKinematic = true;
 
-        // ПРОВЕРКА: есть ли значение предмета в нашем списке правильных чисел?
-        if (correctValues.Contains(item.numericValue))
-        {
-            isCorrect = true;
-            if (slotRenderer) slotRenderer.color = correctColor;
-            Debug.Log($"Слот: ВЕРНО! Число {item.numericValue} подходит.");
-        }
-        else
-        {
-            isCorrect = false;
-            if (slotRenderer) slotRenderer.color = wrongColor;
-            Debug.Log($"Слот: НЕВЕРНО! Число {item.numericValue} не в списке.");
-        }
+        // РћС‚РєР»СЋС‡Р°РµРј РєРѕР»Р»Р°Р№РґРµСЂ Сѓ РїСЂРµРґРјРµС‚Р°, С‡С‚РѕР±С‹ РѕРЅ РЅРµ РјРµС€Р°Р» РЅР°Р¶РёРјР°С‚СЊ РЅР° СЃР»РѕС‚
+        Collider2D itemCollider = item.GetComponent<Collider2D>();
+        if (itemCollider) itemCollider.enabled = false;
 
-        // Оповещаем менеджер о том, что данные в слоте изменились
+        Rigidbody2D rb = item.GetComponent<Rigidbody2D>();
+        if (rb) rb.isKinematic = true;
+
+        if (slotRenderer) slotRenderer.color = occupiedColor;
+
         FindObjectOfType<EquationManager>()?.CheckFullEquation();
     }
 
-    public void RemoveItem()
+    public WeightObject RemoveItem()
     {
+        if (currentItem == null) return null;
+
+        WeightObject item = currentItem;
+
+        // Р’РљР›Р®Р§РђР•Рњ РєРѕР»Р»Р°Р№РґРµСЂ РїСЂРµРґРјРµС‚Р° РѕР±СЂР°С‚РЅРѕ, С‡С‚РѕР±С‹ РµРіРѕ РјРѕР¶РЅРѕ Р±С‹Р»Рѕ РЅРµСЃС‚Рё
+        Collider2D itemCollider = item.GetComponent<Collider2D>();
+        if (itemCollider) itemCollider.enabled = true;
+
+        // РџРћР›РќР«Р™ РЎР‘Р РћРЎ РЎРћРЎРўРћРЇРќРРЇ
+        currentItem = null;
+        currentValue = 0;
+        isOccupied = false; // РЎР»РѕС‚ С‚РµРїРµСЂСЊ РѕС„РёС†РёР°Р»СЊРЅРѕ СЃРІРѕР±РѕРґРµРЅ!
+
+        item.transform.SetParent(null);
+        Rigidbody2D rb = item.GetComponent<Rigidbody2D>();
+        if (rb) rb.isKinematic = false;
+
+        if (slotRenderer) slotRenderer.color = Color.white;
+
+        return item;
+    }
+
+    public void ResetSlotManually()
+    {
+        if (currentItem != null)
+        {
+            Collider2D itemCollider = currentItem.GetComponent<Collider2D>();
+            if (itemCollider) itemCollider.enabled = true;
+        }
+
+        currentItem = null;
         isOccupied = false;
-        isCorrect = false;
+        currentValue = 0;
         if (slotRenderer) slotRenderer.color = Color.white;
     }
+
+    public void SetFeedback(bool isCorrect)
+    {
+        if (slotRenderer) slotRenderer.color = isCorrect ? correctColor : wrongColor;
+    }
+
+    public WeightObject GetItem() => currentItem;
 }

@@ -87,9 +87,15 @@ public class PlayerMovementNew : MonoBehaviour
         }
     }
 
+    public void OnItemPlacedIntoSlot()
+    {
+        carriedItem = null;
+        ResetJumpParameters();
+    }
+
     void Update()
     {
-        if (isDead || isFalling) return;
+        if (isDead) return;
 
         if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.INTERACT)))
         {
@@ -135,36 +141,8 @@ public class PlayerMovementNew : MonoBehaviour
         }
     }
 
-    private void HandleInteraction()
-    {
-        if (carriedItem == null)
-        {
-            Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, pickupRange);
-            foreach (var hit in hits)
-            {
-                WeightObject item = hit.GetComponent<WeightObject>();
-                if (item != null)
-                {
-                    PickUp(item);
-                    return;
-                }
-            }
-        }
-        else
-        {
-            Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, pickupRange);
-            foreach (var hit in hits)
-            {
-                EquationSlot slot = hit.GetComponent<EquationSlot>();
-                if (slot != null && !slot.isOccupied)
-                {
-                    PlaceIntoSlot(slot);
-                    return;
-                }
-            }
-            Drop();
-        }
-    }
+    
+
 
     private void PickUp(WeightObject item)
     {
@@ -388,10 +366,59 @@ public class PlayerMovementNew : MonoBehaviour
         ResetJumpParameters();
     }
 
+    private void HandleInteraction()
+    {
+        float interactRange = pickupRange; // твоя дистанция подбора
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, interactRange);
+
+        if (carriedItem == null) // ПЫТАЕМСЯ ВЗЯТЬ
+        {
+            foreach (var hit in hits)
+            {
+                // 1. Проверяем, не слот ли это с предметом внутри
+                EquationSlot slot = hit.GetComponent<EquationSlot>();
+                if (slot != null && slot.isOccupied)
+                {
+                    WeightObject taken = slot.RemoveItem();
+                    if (taken != null)
+                    {
+                        PickUp(taken);
+                        return;
+                    }
+                }
+
+                // 2. Если слота нет, ищем просто лежащий предмет
+                WeightObject item = hit.GetComponent<WeightObject>();
+                if (item != null)
+                {
+                    PickUp(item);
+                    return;
+                }
+            }
+        }
+        else // ПЫТАЕМСЯ ПОЛОЖИТЬ
+        {
+            foreach (var hit in hits)
+            {
+                EquationSlot slot = hit.GetComponent<EquationSlot>();
+                if (slot != null && !slot.isOccupied) // Если нашли свободный слот
+                {
+                    PlaceIntoSlot(slot);
+                    return;
+                }
+            }
+
+            Drop(); // Если рядом нет слота — просто бросаем
+        }
+    }
+
     private void PlaceIntoSlot(EquationSlot slot)
     {
-        slot.InsertItem(carriedItem);
-        carriedItem = null;
-        ResetJumpParameters();
+        WeightObject itemToPlace = carriedItem;
+        carriedItem = null; // Сначала освобождаем руки игрока!
+        ResetJumpParameters(); // Сбрасываем физику прыжка
+
+        slot.InsertItem(itemToPlace);
     }
+
 }
