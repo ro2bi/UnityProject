@@ -6,8 +6,12 @@ public class TabletInteractAction : MonoBehaviour, IInteractAction
 
     public void Execute()
     {
-        // Відкриваємо меню планшета
-        if (tabletWorld != null)
-            tabletWorld.UseTablet();
+        // Якщо посилання не задане нічого не робимо
+        if (tabletWorld == null) return;
+
+        // Якщо планшет вже відкритий повторно не відкриваємо
+        if (tabletWorld.IsOpen) return;
+
+        tabletWorld.UseTablet();
     }
 }

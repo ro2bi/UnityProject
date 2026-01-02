@@ -1,64 +1,86 @@
 using UnityEngine;
 
+// Цей скрипт відповідає за базову взаємодію з обєктом
+// Гравець підходить до тригера і бачить підказку
+// При натисканні клавіші викликаються дії через IInteractAction
+// Після проходження головоломки взаємодію можна вимкнути
 public class UsableObject : MonoBehaviour
 {
     // Текст підказки який бачить гравець
-    // Він показується коли гравець знаходиться поруч
     [SerializeField] private string interactionText = "Натисніть E щоб використати";
 
     // Клавіша взаємодії
-    // Її можна змінити якщо потрібно
     [SerializeField] private KeyCode interactKey = KeyCode.E;
 
-    // Чи знаходиться гравець у зоні використання
+    // Чи знаходиться гравець у зоні тригера
     private bool playerInside = false;
+
+    // Чи дозволена взаємодія
+    // Якщо false то підказка не показується і E не працює
+    private bool interactionEnabled = true;
 
     private void Update()
     {
-        // Перевіряємо чи гравець поруч
-        // І чи була натиснута клавіша взаємодії
-        if (playerInside && Input.GetKeyDown(interactKey))
-        {
+        // Якщо взаємодія вимкнена то виходимо
+        if (!interactionEnabled) return;
+
+        // Якщо гравець не поруч то виходимо
+        if (!playerInside) return;
+
+        // Якщо натиснули клавішу то викликаємо взаємодію
+        if (Input.GetKeyDown(interactKey))
             Use();
-        }
     }
 
     private void Use()
     {
-        // Цей метод викликається коли гравець використовує обєкт
-        // Сам обєкт не знає що саме він робить
-        // Він просто повідомляє що з ним взаємодіяли
+        // Додаткова перевірка на випадок якщо хтось викличе Use з іншого місця
+        if (!interactionEnabled) return;
 
-        // Отримуємо всі компоненти які реалізують IInteractAction
-        // Це дозволяє підключати різну логіку окремими скриптами
+        // Обєкт сам не знає що він робить
+        // Він лише викликає Execute у всіх компонентів IInteractAction
         IInteractAction[] actions = GetComponents<IInteractAction>();
 
-        // Викликаємо дію у кожного знайденого компонента
         for (int i = 0; i < actions.Length; i++)
         {
             actions[i].Execute();
         }
     }
 
+    public void DisableInteraction()
+    {
+        // Цей метод викликається після проходження головоломки
+        // Він вимикає можливість взаємодії назавжди
+
+        interactionEnabled = false;
+
+        // Якщо гравець стоїть поруч то підказка могла бути видимою
+        // Тому ми її ховаємо одразу
+        UIManagerNew.HideInteractionPrompt();
+    }
+
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // Перевіряємо що в тригер зайшов саме гравець
+        // Перевіряємо що зайшов саме гравець
         if (!other.CompareTag("Player")) return;
 
         playerInside = true;
 
-        // Показуємо підказку взаємодії
+        // Якщо взаємодія вимкнена то підказку не показуємо
+        if (!interactionEnabled) return;
+
+        // Показуємо текст підказки
         UIManagerNew.ShowInteractionPrompt(interactionText);
     }
 
     private void OnTriggerExit2D(Collider2D other)
     {
-        // Перевіряємо що гравець вийшов з тригера
+        // Перевіряємо що вийшов саме гравець
         if (!other.CompareTag("Player")) return;
 
         playerInside = false;
 
-        // Ховаємо підказку взаємодії
+        // При виході ховаємо підказку завжди
         UIManagerNew.HideInteractionPrompt();
     }
 }

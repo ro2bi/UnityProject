@@ -1,14 +1,14 @@
 using UnityEngine;
 
 // Цей скрипт зберігає X та Y
-// Перевіряє умови етапів
-// Зберігає кількість спроб у вигляді сердечок
-// При поразці телепортує гравця у хаб
-// При успіху останнього етапу відкриває двері
+// Він перевіряє умови трьох етапів головоломки
+// Він рахує спроби у вигляді сердечок
+// Він відкриває двері після проходження останнього етапу
+// Він виконує повний скидання після поразки
 public class PuzzleManagerSimple : MonoBehaviour
 {
     // Результат перевірки відповіді
-    // Потрібно щоб планшет знав коли закриватись
+    // Планшет використовує це щоб вирішити що робити далі
     public enum CheckResult
     {
         Correct,
@@ -17,77 +17,97 @@ public class PuzzleManagerSimple : MonoBehaviour
     }
 
     [Header("Посилання")]
+    // Посилання на гравця для телепорту у хаб
     [SerializeField] private Transform player;
+
+    // Точка куди повертається гравець у хабі
     [SerializeField] private Transform hubReturnPoint;
+
+    // Двері які відкриваються після проходження
     [SerializeField] private DoorPuzzle door;
 
     [Header("Спроби")]
-    // Максимальна кількість сердечок
+    // Кількість етапів у головоломці
+    // За умовою у тебе їх 3
+    private const int totalStages = 3;
+
+    // Максимальна кількість спроб
     [SerializeField] private int maxLives = 3;
 
-    // Поточна кількість сердечок
+    // Поточна кількість спроб
     private int lives;
 
     [Header("Значення")]
-    private int x = 0;
-    private int y = 0;
+    // Поточні значення змінних
+    private int x;
+    private int y;
 
-    // Номер поточного етапу
-    private int stage = 0;
+    // Поточний етап
+    // 0 перший 1 другий 2 третій
+    private int stage;
 
-    // Межі значень
+    // Межі значень змінних
     private const int minValue = 0;
     private const int maxValue = 10;
 
-    // Доступ до X Y та сердечок з інших скриптів
+    // Чи потрібно показувати сердечка
+    // Сердечка показуються тільки після першого відкриття планшета
+    private bool heartsVisible;
+
+    // Публічні властивості щоб інші скрипти могли читати стан
     public int X => x;
     public int Y => y;
     public int Lives => lives;
+    public bool HeartsVisible => heartsVisible;
+
+    // Чи завершена головоломка
+    public bool IsCompleted => stage >= totalStages;
 
     private void Start()
     {
-        // На старті встановлюємо кількість спроб
+        // Початковий стан
+        stage = 0;
         lives = maxLives;
+
+        // На старті сердечка приховані
+        heartsVisible = false;
 
         // Закриваємо двері на старті
         if (door != null)
             door.CloseDoor();
 
-        // Обнуляємо значення
+        // Скидаємо X і Y
         ResetValues();
     }
 
-    public string GetEquationText()
+    public void EnableHearts()
     {
-        // Текст умови для поточного етапу
-        if (stage == 0)
-            return "x + y = 8\nx > y";
+        // Викликається при першому відкритті планшета
+        // Після цього сердечка можна показувати
+        heartsVisible = true;
+    }
 
-        if (stage == 1)
-            return "x - y = 2\nx кратен 2";
-
-        if (stage == 2)
-            return "x + y = 8\nx парне\ny непарне";
-
-        // Якщо всі етапи пройдені
-        return "Готово";
+    public void DisableHearts()
+    {
+        // Викликається після перемоги або поразки
+        // Сердечка ховаються з екрана
+        heartsVisible = false;
     }
 
     public void ResetValues()
     {
-        // Скидаємо значення змінних
+        // Скидання значень змінних
         x = 0;
         y = 0;
     }
 
     public bool AddX(int value)
     {
-        // Зберігаємо старе значення
+        // Зберігаємо старе значення для порівняння
         int old = x;
 
-        // Міняємо X і обмежуємо межами
-        x += value;
-        x = Mathf.Clamp(x, minValue, maxValue);
+        // Змінюємо X та обмежуємо межами
+        x = Mathf.Clamp(x + value, minValue, maxValue);
 
         // Повертаємо true якщо значення змінилось
         return x != old;
@@ -97,69 +117,133 @@ public class PuzzleManagerSimple : MonoBehaviour
     {
         // Аналогічно працюємо з Y
         int old = y;
-
-        y += value;
-        y = Mathf.Clamp(y, minValue, maxValue);
-
+        y = Mathf.Clamp(y + value, minValue, maxValue);
         return y != old;
+    }
+
+    public string GetEquationText()
+    {
+        // Якщо вже пройдено всі етапи показуємо повідомлення
+        if (IsCompleted)
+            return "Готово";
+
+        // Текст етапу 1
+        if (stage == 0)
+            return "x + y = 8\nx > y";
+
+        // Текст етапу 2
+        if (stage == 1)
+            return "x - y = 2\nx кратен 2";
+
+        // Текст етапу 3
+        if (stage == 2)
+            return "2x + 1 = 3y\nx парне, y непарне";
+
+        // Запасний варіант
+        return "Рівень пройдено!";
     }
 
     public CheckResult CheckAnswer()
     {
-        // Перевіряємо умову поточного етапу
-        bool correct = false;
+        // Якщо вже все пройдено то відповіді більше не потрібні
+        if (IsCompleted)
+            return CheckResult.Correct;
 
-        if (stage == 0)
-        {
-            correct = (x + y == 8) && (x > y);
-        }
-        else if (stage == 1)
-        {
-            correct = (x - y == 2) && (x % 2 == 0);
-        }
-        else if (stage == 2)
-        {
-            correct = (x + y == 8) && (x % 2 == 0) && (y % 2 != 0);
-        }
+        // Перевіряємо умову поточного етапу
+        bool correct = IsCorrectForStage();
 
         if (correct)
         {
-            // Якщо відповідь правильна переходимо на наступний етап
+            // Переходимо на наступний етап
             stage++;
 
-            // Після успіху обнуляємо X та Y
+            // Після успіху скидаємо X і Y
             ResetValues();
 
-            // Якщо це був останній етап відкриваємо двері
-            if (stage >= 3 && door != null)
+            // Якщо це був останній етап то відкриваємо двері
+            if (IsCompleted && door != null)
                 door.OpenDoor();
 
             return CheckResult.Correct;
         }
 
-        // Якщо відповідь неправильна віднімаємо серце
+        // Якщо помилка зменшуємо спроби
         lives--;
 
-        // Після помилки теж обнуляємо значення
+        // Після помилки теж скидаємо X і Y
         ResetValues();
 
-        // Якщо ще є спроби не телепортуємо
+        // Якщо ще є спроби телепорту не буде
         if (lives > 0)
             return CheckResult.WrongStillAlive;
 
-        // Якщо спроб не залишилось телепортуємо
-        Fail();
-
-        // Відновлюємо життя щоб наступна спроба почалась знову з 3
-        lives = maxLives;
-
+        // Якщо спроб немає то планшет зробить затримку 2 секунди
+        // А потім викличе TeleportFailAndReset
         return CheckResult.WrongNoLives;
     }
 
-    private void Fail()
+    private bool IsCorrectForStage()
     {
+        // Тут реальна логіка перевірки
+        // Вона має збігатися з текстом у GetEquationText
+
+        if (stage == 0)
+        {
+            // Етап 1
+            return (x + y == 8) && (x > y);
+        }
+
+        if (stage == 1)
+        {
+            // Етап 2
+            return (x - y == 2) && (x % 2 == 0);
+        }
+
+        if (stage == 2)
+        {
+            // Етап 3
+            // Умови розбиті на частини для простого пояснення
+            bool equationOk = (2 * x + 1 == 3 * y);
+            bool xEven = (x % 2 == 0);
+            bool yOdd = (y % 2 != 0);
+
+            return equationOk && xEven && yOdd;
+        }
+
+        // Якщо етапи закінчились
+        return true;
+    }
+
+    public void TeleportFailAndReset()
+    {
+        // Цей метод викликається тільки після затримки 2 секунди
+        // Тут відбувається поразка і повний скидання
+
         // Телепорт у хаб
         if (player != null && hubReturnPoint != null)
             player.position = hubReturnPoint.position;
+
+        // Скидаємо етапи щоб почати з початку
+        stage = 0;
+
+        // Відновлюємо спроби
+        lives = maxLives;
+
+        // Скидаємо значення
+        ResetValues();
+
+        // Ховаємо сердечка після поразки
+        DisableHearts();
+
+        // Закриваємо двері щоб знову треба було пройти головоломку
+        if (door != null)
+            door.CloseDoor();
+    }
+
+    public void WinFinalize()
+    {
+        // Цей метод викликається після затримки 2 секунди при перемозі
+        // Тут ми ховаємо сердечка щоб вони не висіли на екрані
+        DisableHearts();
     }
 }

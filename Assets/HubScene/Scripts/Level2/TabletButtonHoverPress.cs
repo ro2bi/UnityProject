@@ -65,7 +65,6 @@ public class TabletButtonHoverPress : MonoBehaviour
     private void OnMouseUp()
     {
         // Кнопку відпустили
-        // Повертаємо відповідний вигляд
         if (sr != null)
         {
             if (mouseOver && hoverSprite != null)
@@ -77,6 +76,9 @@ public class TabletButtonHoverPress : MonoBehaviour
         // Виконуємо дію тільки якщо миша була над кнопкою
         if (!mouseOver) return;
         if (tablet == null) return;
+
+        // Якщо меню планшета не відкрите то кнопки не працюють
+        if (!tablet.IsOpen) return;
 
         if (type == ButtonType.XPlus) tablet.PressXPlus();
         if (type == ButtonType.XMinus) tablet.PressXMinus();
