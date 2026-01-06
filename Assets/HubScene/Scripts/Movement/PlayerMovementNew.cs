@@ -180,8 +180,18 @@ public class PlayerMovementNew : MonoBehaviour
 
     private void HandleInteraction()
     {
-        // --- ЛОГИКА МИН (Работает через MinePointer) ---
-        // Проверяем, есть ли клетка в точке указателя
+        Collider2D interactHit = Physics2D.OverlapCircle(minePointer.position, 0.3f);
+        if (interactHit != null)
+        {
+            IInteractable interactable = interactHit.GetComponent<IInteractable>();
+            if (interactable != null)
+            {
+                interactable.Interact();
+                return; // Взаимодействовали — выходим
+            }
+        }
+
+        // 2. ЛОГИКА МИН (если не нашли торговца)
         Collider2D cellHit = Physics2D.OverlapPoint(minePointer.position);
         if (cellHit != null)
         {
@@ -189,7 +199,7 @@ public class PlayerMovementNew : MonoBehaviour
             if (cell != null)
             {
                 cell.ToggleFlag();
-                return; // Если это была мина, дальше не проверяем
+                return;
             }
         }
 

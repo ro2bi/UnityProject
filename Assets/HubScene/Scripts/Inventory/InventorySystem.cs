@@ -27,6 +27,47 @@ public class InventorySystem : MonoBehaviour
     public int CurrentMoney => currentMoney;
     public List<ItemData> Items => items;
 
+    [Header("Экипировка")]
+    public SpriteRenderer handRenderer; // Создай на игроке дочерний объект Hand и перетащи сюда
+
+    private ItemData equippedTool; // Храним текущий инструмент (кирку)
+
+    public void EquipItem(ItemData item)
+    {
+        if (item == null) return;
+
+        if (item.itemType == ItemType.Tool)
+        {
+            equippedTool = item;
+            if (handRenderer != null)
+            {
+                handRenderer.sprite = item.equipSprite; 
+                handRenderer.gameObject.SetActive(true);
+
+                float s = item.worldScale;
+                handRenderer.transform.localScale = new Vector3(s, s, s);
+            }
+            Debug.Log("Экипирован инструмент: " + item.itemName);
+        }
+        else if (item.itemType == ItemType.Clothing)
+        {
+            if (item.itemName.Contains("Hat") && headRenderer) headRenderer.sprite = item.equipSprite;
+            if (item.itemName.Contains("Shirt") && bodyRenderer) bodyRenderer.sprite = item.equipSprite;
+            if (item.itemName.Contains("Pants") && legsRenderer) legsRenderer.sprite = item.equipSprite;
+
+            Debug.Log("Надета одежда: " + item.itemName);
+        }
+        else if (item.isUsable)
+        {
+            UseItem(item);
+        }
+
+        OnInventoryChanged?.Invoke();
+    }
+
+    public ItemData GetEquippedTool() => equippedTool;
+
+
     private void Awake()
     {
         if (Instance == null) { Instance = this; DontDestroyOnLoad(gameObject); }

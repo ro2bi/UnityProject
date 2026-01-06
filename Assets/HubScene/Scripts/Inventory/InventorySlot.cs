@@ -23,6 +23,15 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IPointerEnterH
         canvas = GetComponentInParent<Canvas>();
     }
 
+    public void EquipCurrentItem()
+    {
+        if (currentItem != null)
+        {
+            InventorySystem.Instance.EquipItem(currentItem);
+            ItemTooltip.Instance.HideTooltip(); // Скрываем после нажатия
+        }
+    }
+
     public void SetItem(ItemData item)
     {
         currentItem = item;

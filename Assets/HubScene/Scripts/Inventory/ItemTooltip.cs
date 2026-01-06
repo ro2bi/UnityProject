@@ -18,6 +18,7 @@ public class ItemTooltip : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     public Button buyButton;
     public Button sellButton;
     public Button dropButton;
+    public Button equipButton; // Твоя кнопка
 
     private ItemData currentItem;
     private bool isInInventory;
@@ -33,6 +34,9 @@ public class ItemTooltip : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         if (sellButton) sellButton.onClick.AddListener(OnSellClicked);
         if (dropButton) dropButton.onClick.AddListener(OnDropClicked);
 
+        // НОВОЕ: Подписка на кнопку экипировки
+        if (equipButton) equipButton.onClick.AddListener(OnEquipClicked);
+
         HideTooltip();
     }
 
@@ -42,92 +46,76 @@ public class ItemTooltip : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         currentItem = item;
         isInInventory = inInventory;
 
-        // 1. Заполняем тексты (ТО, ЧТО НЕ РАБОТАЛО)
         if (itemNameText) itemNameText.text = item.itemName;
         if (descriptionText) descriptionText.text = item.description;
 
-        // 2. Логика цен и количества
         int count = InventorySystem.Instance.GetItemCount(item);
 
         if (inInventory)
         {
-            if (priceText) priceText.text = $"Цена продажи: {item.sellPrice}";
-            if (inventoryCountText) inventoryCountText.text = $"У вас есть: {count}";
+            if (priceText) priceText.text = $"Sell: {item.sellPrice}";
+            if (inventoryCountText) inventoryCountText.text = $"You have: {count}";
 
             if (buyButton) buyButton.gameObject.SetActive(false);
             if (sellButton) sellButton.gameObject.SetActive(true);
             if (dropButton) dropButton.gameObject.SetActive(true);
+
+            // НОВОЕ: Показываем кнопку экипировки только для Одежды и Инструментов
+            if (equipButton)
+            {
+                bool canEquip = item.itemType == ItemType.Clothing || item.itemType == ItemType.Tool;
+                equipButton.gameObject.SetActive(canEquip);
+
+                // Меняем текст кнопки для красоты
+                var btnText = equipButton.GetComponentInChildren<TextMeshProUGUI>();
+                if (btnText) btnText.text = (item.itemType == ItemType.Clothing) ? "Надеть" : "Взять в руки";
+            }
         }
         else
         {
-            if (priceText) priceText.text = $"Цена покупки: {item.buyPrice}";
-            if (inventoryCountText) inventoryCountText.text = $"В инвентаре: {count}";
+            if (priceText) priceText.text = $"Buy: {item.buyPrice}";
+            if (inventoryCountText) inventoryCountText.text = $"Avalible: {count}";
 
             if (buyButton) buyButton.gameObject.SetActive(true);
             if (sellButton) sellButton.gameObject.SetActive(false);
             if (dropButton) dropButton.gameObject.SetActive(false);
+            if (equipButton) equipButton.gameObject.SetActive(false); // В магазине нельзя экипировать
         }
 
         tooltipPanel.SetActive(true);
 
-        // 3. Позиционирование
         if (slotPosition != default)
         {
-            // Смещение вправо (130) и чуть вверх (50), чтобы мышка не перекрывала
             Vector3 offset = new Vector3(130, 50, 0);
             tooltipPanel.transform.position = slotPosition + offset;
         }
     }
 
-    // Метод для обновления данных без переоткрытия (например, после покупки)
+    // --- ЛОГИКА КНОПОК ---
+
+    private void OnEquipClicked()
+    {
+        if (currentItem != null && isInInventory)
+        {
+            // Вызываем метод экипировки в системе инвентаря
+            InventorySystem.Instance.EquipItem(currentItem);
+            ForceHide(); // Закрываем тултип после выбора
+        }
+    }
+
+    // Остальные методы без изменений...
     private void RefreshUI()
     {
         if (currentItem != null)
             ShowTooltip(currentItem, isInInventory, tooltipPanel.transform.position - new Vector3(130, 50, 0));
     }
 
-    public void HideTooltip()
-    {
-        if (!IsMouseOver) tooltipPanel.SetActive(false);
-    }
+    public void HideTooltip() { if (!IsMouseOver) tooltipPanel.SetActive(false); }
+    public void ForceHide() { IsMouseOver = false; tooltipPanel.SetActive(false); }
 
-    public void ForceHide()
-    {
-        IsMouseOver = false;
-        tooltipPanel.SetActive(false);
-    }
-
-    // --- ЛОГИКА КНОПОК ---
-    private void OnBuyClicked()
-    {
-        if (currentItem != null && InventorySystem.Instance.BuyItem(currentItem))
-        {
-            RefreshUI(); // Сразу обновляем текст "В инвентаре: Х"
-        }
-    }
-
-    private void OnSellClicked()
-    {
-        if (currentItem != null)
-        {
-            InventorySystem.Instance.SellItem(currentItem);
-            ForceHide(); // Предмет исчез из слота, скрываем тултип
-        }
-    }
-
-    private void OnDropClicked()
-    {
-        if (currentItem != null)
-        {
-            InventorySystem.Instance.DropItem(currentItem);
-            ForceHide();
-        }
-    }
-
+    private void OnBuyClicked() { if (currentItem != null && InventorySystem.Instance.BuyItem(currentItem)) RefreshUI(); }
+    private void OnSellClicked() { if (currentItem != null) { InventorySystem.Instance.SellItem(currentItem); ForceHide(); } }
+    private void OnDropClicked() { if (currentItem != null) { InventorySystem.Instance.DropItem(currentItem); ForceHide(); } }
     public void OnPointerEnter(PointerEventData eventData) => IsMouseOver = true;
-    public void OnPointerExit(PointerEventData eventData)
-    {
-        IsMouseOver = false;
-        HideTooltip();
-    }
+    public void OnPointerExit(PointerEventData eventData) { IsMouseOver = false; HideTooltip(); }
 }

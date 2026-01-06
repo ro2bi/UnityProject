@@ -44,13 +44,15 @@ public class ItemData : ScriptableObject
 
     [Header("Визуал в мире")]
     public float worldScale = 1.0f;
+    public Sprite equipSprite;
 }
 
 public enum ItemType
 {
     Clothing,
     Potion,
-    Food  
+    Food,
+    Tool
 }
 
 [System.Flags]
