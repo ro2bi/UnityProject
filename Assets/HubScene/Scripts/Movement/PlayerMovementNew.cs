@@ -111,6 +111,17 @@ public class PlayerMovementNew : MonoBehaviour
 
         if (isDead) return;
 
+        if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.DROP)))
+        {
+            InventorySystem.Instance.DropEquippedTool();
+        }
+
+        if (MineGridManager2D.IsUIOpen || MathTimingMinigame.IsOpen)
+        {
+            rb.velocity = Vector2.zero;
+            return;
+        }
+
         // Обновляем положение обеих точек (рук и указателя мин)
         UpdatePointers();
 
@@ -153,6 +164,7 @@ public class PlayerMovementNew : MonoBehaviour
                 StartCoroutine(JumpRoutine());
             }
         }
+        
     }
 
     private void UpdatePointers()
@@ -180,36 +192,41 @@ public class PlayerMovementNew : MonoBehaviour
 
     private void HandleInteraction()
     {
-        Collider2D interactHit = Physics2D.OverlapCircle(minePointer.position, 0.3f);
-        if (interactHit != null)
+        // --- 1. ЛОГИКА ВЗАИМОДЕЙСТВИЯ (IInteractable: Торговцы, Стены, Камни) ---
+        // Используем All, чтобы не спотыкаться об объекты дороги
+        Collider2D[] minePointerHits = Physics2D.OverlapCircleAll(minePointer.position, 0.4f);
+
+        foreach (var hit in minePointerHits)
         {
-            IInteractable interactable = interactHit.GetComponent<IInteractable>();
+            IInteractable interactable = hit.GetComponent<IInteractable>();
             if (interactable != null)
             {
+                Debug.Log("Взаимодействие с: " + hit.name);
                 interactable.Interact();
-                return; // Взаимодействовали — выходим
+                return; // Нашли интерактив — выходим
             }
         }
 
-        // 2. ЛОГИКА МИН (если не нашли торговца)
-        Collider2D cellHit = Physics2D.OverlapPoint(minePointer.position);
-        if (cellHit != null)
+        // --- 2. ЛОГИКА МИН (Если не нашли интерактивных объектов выше) ---
+        foreach (var hit in minePointerHits)
         {
-            MineCell2D cell = cellHit.GetComponent<MineCell2D>();
+            MineCell2D cell = hit.GetComponent<MineCell2D>();
             if (cell != null)
             {
                 cell.ToggleFlag();
-                return;
+                return; // Поставили флаг — выходим
             }
         }
 
-        // --- ЛОГИКА ПРЕДМЕТОВ (Работает через HoldPoint) ---
+        // --- 3. ЛОГИКА ПРЕДМЕТОВ (HoldPoint) ---
+        // Тут оставляем OverlapCircleAll, так как он и так работал со списком
         Collider2D[] itemHits = Physics2D.OverlapCircleAll(holdPoint.position, pickupRange);
 
         if (carriedItem == null)
         {
             foreach (var hit in itemHits)
             {
+                // Сначала проверяем слоты уравнений
                 EquationSlot slot = hit.GetComponent<EquationSlot>();
                 if (slot != null && slot.isOccupied)
                 {
@@ -217,6 +234,7 @@ public class PlayerMovementNew : MonoBehaviour
                     if (taken != null) { PickUp(taken); return; }
                 }
 
+                // Потом просто предметы на земле
                 WeightObject item = hit.GetComponent<WeightObject>();
                 if (item != null) { PickUp(item); return; }
             }
@@ -225,9 +243,12 @@ public class PlayerMovementNew : MonoBehaviour
         {
             foreach (var hit in itemHits)
             {
+                // Пробуем положить в слот
                 EquationSlot slot = hit.GetComponent<EquationSlot>();
                 if (slot != null && !slot.isOccupied) { PlaceIntoSlot(slot); return; }
             }
+
+            // Если никуда не положили — просто бросаем
             Drop();
         }
     }

@@ -67,6 +67,50 @@ public class InventorySystem : MonoBehaviour
 
     public ItemData GetEquippedTool() => equippedTool;
 
+    public void UnequipTool()
+    {
+        equippedTool = null;
+        if (handRenderer != null)
+        {
+            handRenderer.sprite = null;
+            handRenderer.gameObject.SetActive(false);
+        }
+    }
+
+    // Метод для полного выброса предмета из рук на землю
+    public void DropEquippedTool()
+    {
+        if (equippedTool == null) return;
+
+        // Сохраняем ссылку на предмет перед тем как очистить руку
+        ItemData toolToDrop = equippedTool;
+
+        // 1. Убираем визуал из рук
+        UnequipTool();
+
+        // 2. Используем твой существующий метод DropItem
+        // Он создаст WorldItem в мире и удалит предмет из списка предметов (items)
+        DropItem(toolToDrop);
+
+        Debug.Log($"Предмет {toolToDrop.itemName} выброшен из рук на землю.");
+    }
+
+    public void UpgradeEquippedTool(ItemData upgradedVersion)
+    {
+        if (equippedTool == null || upgradedVersion == null) return;
+
+        Debug.Log($"Улучшаем {equippedTool.itemName} -> {upgradedVersion.itemName}");
+
+        // 1. Находим и удаляем старую палку из списка предметов
+        ItemData oldTool = equippedTool;
+        RemoveItem(oldTool);
+
+        // 2. Добавляем новую палку в инвентарь
+        AddItem(upgradedVersion);
+
+        // 3. Сразу экипируем её в руки
+        EquipItem(upgradedVersion);
+    }
 
     private void Awake()
     {

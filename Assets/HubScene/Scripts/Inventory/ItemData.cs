@@ -47,6 +47,7 @@ public class ItemData : ScriptableObject
     public Sprite equipSprite;
 }
 
+
 public enum ItemType
 {
     Clothing,
