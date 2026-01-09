@@ -7,8 +7,11 @@ public class RoadController : MonoBehaviour
 
     private void Start()
     {
+        // На старті дорога вимкнена
         road.SetActive(false);
-        wall.SetActive(true);
+
+        // На старті двері вимкнені
+        wall.SetActive(false);
     }
 
     public void ActivateRoad()
