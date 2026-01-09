@@ -4,6 +4,15 @@ using TMPro;
 using System.Collections.Generic;
 using System;
 
+[System.Serializable]
+public class MathTimingLevel
+{
+    public string equationText;
+    public string equationText2;
+    public float minValidX;
+    public float maxValidX;
+}
+
 public class MathTimingMinigame : MonoBehaviour
 {
     public static MathTimingMinigame Instance { get; private set; }
@@ -21,16 +30,18 @@ public class MathTimingMinigame : MonoBehaviour
     public float maxValue = 10f;
     public float sliderSpeed = 2f;
 
-    [System.Serializable]
-    public class MathTimingLevel
-    {
-        public string equationText;
-        public string equationText2;
-        public float minValidX;
-        public float maxValidX;
-    }
+    [Header("Эффекты ошибки")]
+    public float shakeDuration = 0.3f; // Длительность тряски
+    public float shakeMagnitude = 10f;  // Интенсивность (на сколько пикселей прыгает)
+    private Vector3 originalPanelPos;
 
-    public List<MathTimingLevel> levels = new List<MathTimingLevel>();
+    [Header("Эффекты успеха")]
+    public Image sliderBarImage; // Ссылка на Image полоски (Bar)
+    public float successDelay = 1f; // Задержка в 1 секунду
+    private Color originalBarColor;
+    private bool isWaitingNextLevel = false; // Блокировка ввода во время паузы
+
+    private List<MathTimingLevel> levels;
 
     private int currentLevelIndex = 0;
     private bool isActive = false;
@@ -43,22 +54,54 @@ public class MathTimingMinigame : MonoBehaviour
     {
         Instance = this;
         minigamePanel.SetActive(false);
+        if (sliderBarImage != null) originalBarColor = sliderBarImage.color;
     }
 
     // Запуск игры
-    public void StartMinigame(Action onSuccess)
+    public void StartMinigame(List<MathTimingLevel> customLevels, Action onSuccess)
     {
+        if (customLevels == null || customLevels.Count == 0)
+        {
+            Debug.LogError("Мини-игре не переданы уровни!");
+            return;
+        }
+
+        levels = customLevels; // Устанавливаем уровни именно этого объекта
         onWinCallback = onSuccess;
         currentLevelIndex = 0;
         minigamePanel.SetActive(true);
         isActive = true;
 
-        // ЗАМОРАЖИВАЕМ ВРЕМЯ
         Time.timeScale = 0f;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
+        originalPanelPos = minigamePanel.transform.localPosition;
+
         LoadLevel();
+    }
+
+    private System.Collections.IEnumerator ShakePanel()
+    {
+        float elapsed = 0f;
+
+        while (elapsed < shakeDuration)
+        {
+            // Вычисляем случайное смещение
+            float x = UnityEngine.Random.Range(-1f, 1f) * shakeMagnitude;
+            float y = UnityEngine.Random.Range(-1f, 1f) * shakeMagnitude;
+
+            // Применяем смещение к локальной позиции панели
+            minigamePanel.transform.localPosition = new Vector3(originalPanelPos.x + x, originalPanelPos.y + y, originalPanelPos.z);
+
+            // Используем unscaledDeltaTime, так как время на паузе!
+            elapsed += Time.unscaledDeltaTime;
+
+            yield return null; // Ждем следующий кадр
+        }
+
+        // Возвращаем панель в исходную точку
+        minigamePanel.transform.localPosition = originalPanelPos;
     }
 
     private void Update()
@@ -95,16 +138,18 @@ public class MathTimingMinigame : MonoBehaviour
 
     private void CheckAnswer()
     {
+        if (isWaitingNextLevel) return; // Не даем нажимать во время паузы
+
         var level = levels[currentLevelIndex];
         if (currentXValue >= level.minValidX && currentXValue <= level.maxValidX)
         {
-            currentLevelIndex++;
-            LoadLevel();
+            // Запускаем корутину успеха
+            StartCoroutine(SuccessFlash());
         }
         else
         {
-            Debug.Log("Промах! Уровень заново.");
-            // Можно добавить визуальный эффект ошибки
+            StopAllCoroutines();
+            StartCoroutine(ShakePanel());
         }
     }
 
@@ -120,5 +165,23 @@ public class MathTimingMinigame : MonoBehaviour
 
         // Выполняем действие (удаление объекта и спавн предмета)
         onWinCallback?.Invoke();
+    }
+
+    private System.Collections.IEnumerator SuccessFlash()
+    {
+        isWaitingNextLevel = true; // Блокируем ввод
+
+        // Окрашиваем в зеленый
+        if (sliderBarImage != null) sliderBarImage.color = Color.green;
+
+        // Ждем 1 секунду (реального времени)
+        yield return new WaitForSecondsRealtime(successDelay);
+
+        // Возвращаем цвет
+        if (sliderBarImage != null) sliderBarImage.color = originalBarColor;
+
+        currentLevelIndex++;
+        isWaitingNextLevel = false; // Разблокируем ввод
+        LoadLevel();
     }
 }

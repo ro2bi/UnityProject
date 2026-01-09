@@ -1,4 +1,6 @@
 using UnityEngine;
+using System.Collections.Generic;
+using System;
 
 public class MathObject : MonoBehaviour, IInteractable
 {
@@ -6,13 +8,12 @@ public class MathObject : MonoBehaviour, IInteractable
     public ItemData itemToSpawn; // Какой предмет появится после победы
     public GameObject worldItemPrefab; // Тот же префаб, что в InventorySystem
 
+    public List<MathTimingLevel> objectLevels = new List<MathTimingLevel>();
     public void Interact()
     {
-        if (MathTimingMinigame.Instance != null)
-        {
-            // Запускаем игру и передаем метод Finish как результат
-            MathTimingMinigame.Instance.StartMinigame(Finish);
-        }
+        
+            MathTimingMinigame.Instance.StartMinigame(objectLevels, Finish);
+        
     }
 
     private void Finish()
