@@ -4,62 +4,72 @@ using System;
 
 public static class KeybindManager
 {
-    // Имя, используемое для сохранения данных в PlayerPrefs
     private const string KeybindsSaveKey = "GameKeybinds";
-
-    // Словарь, хранящий текущие привязки: ActionName -> KeyCode
     private static Dictionary<string, KeyCode> keybinds = new Dictionary<string, KeyCode>();
-
     public static event Action OnKeybindsChanged;
 
-    // КОНСТАНТЫ ДЕЙСТВИЙ: используйте эти строки в RebindButton.ActionToRebind
+    // КОНСТАНТИ ДІЙ
     public const string JUMP = "Jump";
-    public const string MOVE_FORWARD = "MoveForward"; 
+    public const string MOVE_FORWARD = "MoveForward";
     public const string MOVE_BACKWARD = "MoveBackward";
     public const string MOVE_RIGHT = "MoveRight";
     public const string MOVE_LEFT = "MoveLeft";
-    public const string INTERACT = "Interact"; 
+    public const string INTERACT = "Interact";
     public const string TOMENU = "ToMenu";
     public const string INVENTORY = "Inventory";
     public const string DROP = "Drop";
-    // Добавьте сюда любые другие действия
-
-    // ----------------------------------------------------------------------
-    // 1. Инициализация и загрузка (Вызывается один раз при старте игры/меню)
-    // ----------------------------------------------------------------------
+    public const string HELPWINDOW = "HelpWindow";
 
     private static readonly Dictionary<string, KeyCode> DefaultKeybinds = new Dictionary<string, KeyCode>
-{
-    { JUMP, KeyCode.Space },
-    { MOVE_FORWARD, KeyCode.W },
-    { MOVE_BACKWARD, KeyCode.S },
-    { MOVE_RIGHT, KeyCode.D },
-    { MOVE_LEFT, KeyCode.A },
-    { INTERACT, KeyCode.E },
-    { TOMENU, KeyCode.Escape },
-    { INVENTORY, KeyCode.R },
-    { DROP, KeyCode.G },
-};
+    {
+        { JUMP, KeyCode.Space },
+        { MOVE_FORWARD, KeyCode.W },
+        { MOVE_BACKWARD, KeyCode.S },
+        { MOVE_RIGHT, KeyCode.D },
+        { MOVE_LEFT, KeyCode.A },
+        { INTERACT, KeyCode.E },
+        { TOMENU, KeyCode.Escape },
+        { INVENTORY, KeyCode.R },
+        { DROP, KeyCode.G },
+        { HELPWINDOW, KeyCode.H },
+    };
 
     public static void InitializeKeys()
     {
         if (PlayerPrefs.HasKey(KeybindsSaveKey))
         {
             LoadKeybinds();
+            // ВАЖЛИВО: Перевіряємо, чи всі дії присутні після завантаження
+            ValidateKeybinds();
         }
         else
         {
-            // Используем значения по умолчанию
             keybinds = new Dictionary<string, KeyCode>(DefaultKeybinds);
-            SaveKeybinds(); // Сохраняем значения по умолчанию
+            SaveKeybinds();
         }
     }
 
-    // ----------------------------------------------------------------------
-    // 2. Публичные методы для доступа и изменения
-    // ----------------------------------------------------------------------
+    // НОВИЙ МЕТОД: Перевіряє і додає відсутні дії
+    private static void ValidateKeybinds()
+    {
+        bool needsSave = false;
 
-    // Получить KeyCode для определенного действия
+        foreach (var defaultPair in DefaultKeybinds)
+        {
+            if (!keybinds.ContainsKey(defaultPair.Key))
+            {
+                keybinds.Add(defaultPair.Key, defaultPair.Value);
+                needsSave = true;
+                Debug.Log($"Added missing keybind: {defaultPair.Key} = {defaultPair.Value}");
+            }
+        }
+
+        if (needsSave)
+        {
+            SaveKeybinds();
+        }
+    }
+
     public static KeyCode GetKey(string actionName)
     {
         if (keybinds.ContainsKey(actionName))
@@ -72,28 +82,19 @@ public static class KeybindManager
 
     public static void ResetToDefaults()
     {
-        // 1. Копируем значения по умолчанию в рабочий словарь
         keybinds = new Dictionary<string, KeyCode>(DefaultKeybinds);
-
-        // 2. Сохраняем сброшенные значения в PlayerPrefs
         SaveKeybinds();
-
-        // 3. НОВОЕ: Вызываем событие, чтобы обновить все кнопки
         OnKeybindsChanged?.Invoke();
-
         Debug.Log("Keybinds have been reset to default values.");
     }
 
-    // Установить новую клавишу для определенного действия
     public static void SetKey(string actionName, KeyCode newKey)
     {
         if (keybinds.ContainsKey(actionName))
         {
-            // 1. Обновляем привязку в словаре
             keybinds[actionName] = newKey;
-
-            // 2. Сохраняем изменение
             SaveKeybinds();
+            OnKeybindsChanged?.Invoke();
         }
         else
         {
@@ -101,15 +102,9 @@ public static class KeybindManager
         }
     }
 
-    // ----------------------------------------------------------------------
-    // 3. Сохранение и Загрузка (Используем JSON для удобства)
-    // ----------------------------------------------------------------------
-
-    // Класс-контейнер для сериализации словаря
     [System.Serializable]
     private class KeybindsData
     {
-        // Список, который хранит пары "ИмяДействия:КодКлавиши"
         public List<string> keys = new List<string>();
         public List<string> values = new List<string>();
 
@@ -129,7 +124,6 @@ public static class KeybindManager
             Dictionary<string, KeyCode> dict = new Dictionary<string, KeyCode>();
             for (int i = 0; i < keys.Count; i++)
             {
-                // Попытка преобразовать строку в KeyCode
                 if (System.Enum.TryParse(values[i], out KeyCode keyCode))
                 {
                     dict.Add(keys[i], keyCode);
@@ -147,7 +141,6 @@ public static class KeybindManager
     {
         KeybindsData data = new KeybindsData();
         data.FromDictionary(keybinds);
-
         string json = JsonUtility.ToJson(data);
         PlayerPrefs.SetString(KeybindsSaveKey, json);
         PlayerPrefs.Save();
@@ -160,12 +153,8 @@ public static class KeybindManager
         {
             string json = PlayerPrefs.GetString(KeybindsSaveKey);
             KeybindsData data = JsonUtility.FromJson<KeybindsData>(json);
-
-            // Загружаем данные из JSON в наш рабочий словарь
             keybinds = data.ToDictionary();
             Debug.Log("Keybinds loaded successfully.");
         }
     }
-
-
 }

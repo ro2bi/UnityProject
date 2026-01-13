@@ -32,6 +32,21 @@ public class InventorySystem : MonoBehaviour
 
     private ItemData equippedTool; // Храним текущий инструмент (кирку)
 
+
+    public bool HasItem(string itemName)
+    {
+        return items.Any(i => i.itemName == itemName);
+    }
+
+    public void RemoveItemByName(string itemName)
+    {
+        ItemData item = items.Find(i => i.itemName == itemName);
+        if (item != null)
+        {
+            RemoveItem(item);
+        }
+    }
+
     public void EquipItem(ItemData item)
     {
         if (item == null) return;

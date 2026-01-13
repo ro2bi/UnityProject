@@ -59,6 +59,9 @@ public class ProfessorWalker : MonoBehaviour
     public GameObject finalWall;
     [Header("Фінальний контролер дороги")]
     public RoadController roadController;
+    [Header("Настройки платных подсказок")]
+    public string hintItemName = "Книга Знаний"; // Название предмета из ItemData
+    private bool isCurrentHintUnlocked = false; // Разблокирована ли подсказка на этой остановке
 
     // ===================== STATE =====================
     private int segmentIndex = 0;
@@ -73,14 +76,14 @@ public class ProfessorWalker : MonoBehaviour
     // ===================== START =====================
     private void Start()
     {
-        // ✅ Вимикаємо панелі на старті
+        // Вимикаємо панелі на старті
         if (dialoguePanel != null)
             dialoguePanel.SetActive(false);
 
         if (hintBubble != null)
             hintBubble.SetActive(false);
 
-        // 👇 АВТОСТАРТ ЧЕРЕЗ 1 СЕКУНДУ
+        // АВТОСТАРТ ЧЕРЕЗ 1 СЕКУНДУ
         StartCoroutine(AutoStart());
     }
 
@@ -119,6 +122,7 @@ public class ProfessorWalker : MonoBehaviour
         waitingForInteract = false;
         walking = true;
         showingHints = false;
+        isCurrentHintUnlocked = false; // Сбрасываем при начале движения
         hintIndex = 0;
 
         if (hintBubble != null)
@@ -126,14 +130,12 @@ public class ProfessorWalker : MonoBehaviour
 
         Segment s = segments[segmentIndex];
 
-
-        // 🔑 ВАЖЛИВО
         if (anim != null)
         {
             if (s.playWalkAnimation)
                 anim.SetFloat(speedParam, 1f);
             else
-                anim.SetFloat(speedParam, 0f); // залишається Idle
+                anim.SetFloat(speedParam, 0f);
         }
 
         if (phraseRoutine != null) StopCoroutine(phraseRoutine);
@@ -180,7 +182,7 @@ public class ProfessorWalker : MonoBehaviour
 
     private IEnumerator ShowPhrases(TimedPhrase[] phrases)
     {
-        // ✅ Фрази показуються ЗАВЖДИ під час ходіння
+        // Фрази показуються ЗАВЖДИ під час ходіння
         if (dialoguePanel != null)
             dialoguePanel.SetActive(true);
 
@@ -191,13 +193,34 @@ public class ProfessorWalker : MonoBehaviour
             yield return new WaitForSeconds(p.duration);
         }
 
-        // ✅ Закриваємо панель після всіх фраз
+        // Закриваємо панель після всіх фраз
         if (dialoguePanel != null)
             dialoguePanel.SetActive(false);
     }
 
     private void ShowNextHint()
     {
+        // 1. Проверяем, разблокирована ли подсказка
+        if (!isCurrentHintUnlocked)
+        {
+            // Пытаемся "купить" доступ к подсказкам за предмет
+            if (InventorySystem.Instance.HasItem(hintItemName))
+            {
+                InventorySystem.Instance.RemoveItemByName(hintItemName);
+                isCurrentHintUnlocked = true;
+                Debug.Log("Подсказка оплачена предметом.");
+                // После оплаты сразу показываем первую подсказку (идем дальше по коду)
+            }
+            else
+            {
+                // Предмета нет - выводим предупреждение
+                if (hintBubble != null) hintBubble.SetActive(true);
+                if (hintText != null) hintText.text = $"Нужен предмет: {hintItemName}";
+                return; // Выходим, не инкрементируя hintIndex
+            }
+        }
+
+        // 2. Логика показа самих подсказок (если оплачено)
         string[] hints = segments[segmentIndex].hints;
 
         if (hintIndex < hints.Length)
@@ -212,7 +235,7 @@ public class ProfessorWalker : MonoBehaviour
         }
         else
         {
-            // Всі підказки показані - ховаємо панель
+            // Все подсказки показаны
             if (hintBubble != null)
                 hintBubble.SetActive(false);
         }
@@ -221,35 +244,35 @@ public class ProfessorWalker : MonoBehaviour
     // ===================== LEVEL MANAGER CALLS =====================
     public IEnumerator DisappearTeleportAppear(Vector3 newPos)
     {
-        // ✅ Ховаємо всі UI панелі
+        // Ховаємо всі UI панелі
         if (dialoguePanel != null)
             dialoguePanel.SetActive(false);
         if (hintBubble != null)
             hintBubble.SetActive(false);
 
-        // ✅ Зупиняємо анімацію перед зникненням
+        // Зупиняємо анімацію перед зникненням
         if (anim != null)
             anim.SetFloat(speedParam, 0);
 
-        // ✅ Анімація зникнення
+        // Анімація зникнення
         if (anim != null)
             anim.Play(disappearAnim);
         yield return new WaitForSeconds(disappearDuration);
 
-        // ✅ Телепорт
+        // Телепорт
         transform.position = newPos;
 
-        // ✅ Анімація появи
+        // Анімація появи
         if (anim != null)
             anim.Play(appearAnim);
         yield return new WaitForSeconds(0.5f);
 
-        // ✅ Переходимо до наступного сегмента
+        // Переходимо до наступного сегмента
         segmentIndex++;
         if (segmentIndex >= segments.Length)
             segmentIndex = 0;
 
-        // 👇 ВАЖНО
+        // ВАЖНО
         waitingForInteract = true;   // ждём игрока
         showingHints = false;
         walking = false;
@@ -270,7 +293,7 @@ public class ProfessorWalker : MonoBehaviour
         {
             playerInside = false;
 
-            // ✅ НЕ закриваємо UI коли гравець виходить
+            // НЕ закриваємо UI коли гравець виходить
             // Фрази та підказки продовжують показуватися
         }
     }
