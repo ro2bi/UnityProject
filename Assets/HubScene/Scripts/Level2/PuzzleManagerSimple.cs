@@ -31,6 +31,11 @@ public class PuzzleManagerSimple : MonoBehaviour
     // Зʼявляється після повного проходження головоломки
     [SerializeField] private GameObject roadObject;
 
+    // Обʼєкт тригера який має зʼявитися після перемоги
+    // Його потрібно перетягнути в інспекторі
+    // На старті він буде вимкнений щоб не було видно і щоб не працював колайдер
+    [SerializeField] private GameObject triggerAfterWin;
+
     [Header("Спроби")]
     // Кількість етапів у головоломці
     private const int totalStages = 3;
@@ -84,6 +89,11 @@ public class PuzzleManagerSimple : MonoBehaviour
         // Ховаємо дорогу на старті
         if (roadObject != null)
             roadObject.SetActive(false);
+
+        // Ховаємо тригер на старті
+        // Якщо його вимкнути як GameObject, він не буде видимий і не буде реагувати на дотики
+        if (triggerAfterWin != null)
+            triggerAfterWin.SetActive(false);
 
         // Скидаємо X та Y
         ResetValues();
@@ -165,9 +175,14 @@ public class PuzzleManagerSimple : MonoBehaviour
                     door.OpenDoor();
                 }
 
-                // Показуємо дорогу
+                // Показуємо дорогу після перемоги
                 if (roadObject != null)
                     roadObject.SetActive(true);
+
+                // Показуємо тригер після перемоги
+                // Після цього тригер стає видимим і починає працювати
+                if (triggerAfterWin != null)
+                    triggerAfterWin.SetActive(true);
             }
 
             return CheckResult.Correct;
@@ -222,6 +237,11 @@ public class PuzzleManagerSimple : MonoBehaviour
         // Ховаємо дорогу після поразки
         if (roadObject != null)
             roadObject.SetActive(false);
+
+        // Ховаємо тригер після поразки
+        // Це важливо якщо гравець програв після того як вже колись переміг
+        if (triggerAfterWin != null)
+            triggerAfterWin.SetActive(false);
     }
 
     public void WinFinalize()
