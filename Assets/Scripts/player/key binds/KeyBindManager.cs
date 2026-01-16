@@ -157,4 +157,10 @@ public static class KeybindManager
             Debug.Log("Keybinds loaded successfully.");
         }
     }
+
+    public static Dictionary<string, KeyCode> GetAllKeybinds()
+    {
+        // ¬озвращаем копию словар€, чтобы UI мог его перебрать
+        return new Dictionary<string, KeyCode>(keybinds);
+    }
 }

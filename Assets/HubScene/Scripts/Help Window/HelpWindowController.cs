@@ -1,32 +1,47 @@
 using UnityEngine;
 using TMPro;
+using System.Text;
+using System.Collections.Generic;
+using UnityEngine.UI;
 
 public class HelpWindowController : MonoBehaviour
 {
     [Header("UI Elements")]
     public GameObject helpPanel;
-    [TextArea(5, 10)]
-    public string helpTextContent;
     public TextMeshProUGUI textDisplay;
 
-    // Ссылка на имя клавиши в KeybindManager
-    private const string HELP_KEY = "HelpWindow";
+    [Header("Настройки Иконок")]
+    public Image buttonIcon;     
+    public Sprite iconGame;       
+    public Sprite iconMenuOpen;     
+
+    [Header("Стартова підказка")]
+    public GameObject startupHintObject; 
+    public float hintDuration = 5f;
+
+    [Header("Дополнительная информация")]
+    [TextArea(5, 15)]
+    public string helpTextContent;
 
     private void Start()
     {
         if (helpPanel != null) helpPanel.SetActive(false);
-        if (textDisplay != null) textDisplay.text = helpTextContent;
+        UpdateHelpContent();
+        UpdateIconButton(false);
+
+        if (startupHintObject != null)
+        {
+            StartCoroutine(HideHintAfterTime());
+        }
     }
 
     private void Update()
     {
-        // Проверяем нажатие клавиши из твоего KeybindManager
-        if (Input.GetKeyDown(KeybindManager.GetKey(HELP_KEY)))
+        if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.HELPWINDOW)))
         {
             ToggleHelp();
         }
 
-        // Если окно открыто, позволяем закрыть его на Escape (опционально)
         if (helpPanel.activeSelf && Input.GetKeyDown(KeyCode.Escape))
         {
             CloseHelp();
@@ -38,19 +53,79 @@ public class HelpWindowController : MonoBehaviour
         if (helpPanel == null) return;
 
         bool isOpening = !helpPanel.activeSelf;
+
+        if (isOpening)
+        {
+            UpdateHelpContent();
+        }
+
         helpPanel.SetActive(isOpening);
 
-        // Ставим паузу
-        Time.timeScale = isOpening ? 0f : 1f;
+        UpdateIconButton(isOpening);
 
-        // Блокируем игрока
+        Time.timeScale = isOpening ? 0f : 1f;
         MineGridManager2D.IsUIOpen = isOpening;
+
+        if (startupHintObject != null) startupHintObject.SetActive(false);
+    }
+
+    private void UpdateIconButton(bool isOpen)
+    {
+        if (buttonIcon != null)
+        {
+            buttonIcon.sprite = isOpen ? iconMenuOpen : iconGame;
+        }
     }
 
     public void CloseHelp()
     {
         helpPanel.SetActive(false);
+        UpdateIconButton(false); // Возвращаем иконку игры
         Time.timeScale = 1f;
         MineGridManager2D.IsUIOpen = false;
+    }
+
+    
+    private void UpdateHelpContent()
+    {
+        if (textDisplay == null) return;
+        StringBuilder sb = new StringBuilder();
+        if (!string.IsNullOrEmpty(helpTextContent))
+        {
+            sb.AppendLine("<size=120%><color=#FFCC00>INFO:</color></size>");
+            sb.AppendLine(helpTextContent);
+            sb.AppendLine();
+        }
+        sb.AppendLine("<size=120%><color=#FFCC00>Управління:</color></size>");
+        var allBinds = KeybindManager.GetAllKeybinds();
+        foreach (var bind in allBinds)
+        {
+            sb.AppendLine($"{GetFriendlyName(bind.Key)} --- {bind.Value}");
+        }
+        textDisplay.text = sb.ToString();
+    }
+
+    private string GetFriendlyName(string actionKey)
+    {
+        switch (actionKey)
+        {
+            case KeybindManager.MOVE_FORWARD: return "Вперед";
+            case KeybindManager.MOVE_BACKWARD: return "Назад";
+            case KeybindManager.MOVE_LEFT: return "Вліво";
+            case KeybindManager.MOVE_RIGHT: return "Вправо";
+            case KeybindManager.INTERACT: return "Взаємодія";
+            case KeybindManager.INVENTORY: return "Інвентар";
+            case KeybindManager.DROP: return "Викинуть предмет";
+            case KeybindManager.JUMP: return "Стрибок";
+            case KeybindManager.HELPWINDOW: return "Відкрити допомогу";
+            case KeybindManager.TOMENU: return "Меню";
+            default: return actionKey;
+        }
+    }
+    private System.Collections.IEnumerator HideHintAfterTime()
+    {
+        startupHintObject.SetActive(true);
+        yield return new WaitForSeconds(hintDuration);
+        startupHintObject.SetActive(false);
     }
 }
