@@ -122,8 +122,17 @@ public class HelpWindowController : MonoBehaviour
             default: return actionKey;
         }
     }
+    public TextMeshProUGUI startupHintTextDisplay; 
+
     private System.Collections.IEnumerator HideHintAfterTime()
     {
+        KeyCode helpKey = KeybindManager.GetKey(KeybindManager.HELPWINDOW);
+
+        if (startupHintTextDisplay != null)
+        {
+            startupHintTextDisplay.text = $"{helpKey} to help";
+        }
+
         startupHintObject.SetActive(true);
         yield return new WaitForSeconds(hintDuration);
         startupHintObject.SetActive(false);
