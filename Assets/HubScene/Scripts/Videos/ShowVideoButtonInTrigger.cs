@@ -1,79 +1,93 @@
 using UnityEngine;
 
-// Цей скрипт висить на обʼєкті тригер зони
-// Він показує кнопку відкриття відео коли гравець стоїть у зоні
-// Він ховає кнопку коли гравець виходить із зони
-// Він повідомляє VideoLessonPlayer чи гравець зараз у зоні
+// Цей скрипт висить на Trigger Zone
+// Trigger має Collider2D з увімкненим IsTrigger
+// Скрипт відповідає тільки за появу і зникнення кнопки
 public class ShowVideoButtonInTrigger : MonoBehaviour
 {
-    // Тут ми вручну вказуємо обʼєкт гравця
-    // Це зроблено щоб тригер працював гарантовано і не залежав від тегів
+    // Обʼєкт гравця
+    // Ми порівнюємо саме з ним
     [SerializeField] private GameObject playerObject;
 
-    // Це обʼєкт кнопки відкриття відео
+    // Обʼєкт кнопки у світі
     [SerializeField] private GameObject videoButtonObject;
 
-    // Це скрипт який керує відео та UI
+    // Головний скрипт відео
     [SerializeField] private VideoLessonPlayer videoLessonPlayer;
+
+    // Скрипт кнопки
+    // Через нього ми скидаємо спрайт
+    [SerializeField] private VideoButtonHoverPress videoButtonHoverPress;
 
     private void Start()
     {
         // На старті гри кнопку ховаємо
         HideButton();
 
-        // На старті вважаємо що гравця в зоні немає
+        // Повідомляємо VideoLessonPlayer
+        // Що гравця у зоні немає
         if (videoLessonPlayer != null)
             videoLessonPlayer.SetPlayerInZone(false);
+
+        // Також одразу скидаємо кнопку в normal
+        if (videoButtonHoverPress != null)
+            videoButtonHoverPress.ResetToNormal();
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // Цей метод викликається коли якийсь обʼєкт зайшов у тригер
+        // Цей метод викликається
+        // Коли будь-який обʼєкт зайшов у тригер
 
-        // Перевіряємо що це саме гравець
+        // Нас цікавить тільки гравець
         if (other.gameObject != playerObject) return;
 
-        // Запамʼятовуємо що гравець у зоні
+        // Повідомляємо що гравець у зоні
         if (videoLessonPlayer != null)
             videoLessonPlayer.SetPlayerInZone(true);
 
-        // Якщо відео вже відкрите, кнопку відкриття не показуємо
+        // Якщо відео вже відкрите
+        // Кнопку показувати не треба
         if (videoLessonPlayer != null && videoLessonPlayer.IsVideoOpen())
             return;
 
-        // Показуємо кнопку відкриття
+        // Перед показом кнопки
+        // ОБОВʼЯЗКОВО скидаємо її у normal
+        if (videoButtonHoverPress != null)
+            videoButtonHoverPress.ResetToNormal();
+
+        // Показуємо кнопку
         ShowButton();
     }
 
     private void OnTriggerExit2D(Collider2D other)
     {
-        // Цей метод викликається коли якийсь обʼєкт вийшов із тригера
+        // Метод викликається
+        // Коли обʼєкт виходить з тригера
 
-        // Перевіряємо що це саме гравець
         if (other.gameObject != playerObject) return;
 
-        // Запамʼятовуємо що гравець більше не у зоні
+        // Повідомляємо що гравець вийшов із зони
         if (videoLessonPlayer != null)
             videoLessonPlayer.SetPlayerInZone(false);
 
-        // Ховаємо кнопку відкриття
+        // Ховаємо кнопку
         HideButton();
 
-        // Якщо гравець пішов із зони, закриваємо відео
+        // Якщо відео було відкрито
+        // Ми його закриваємо
         if (videoLessonPlayer != null)
             videoLessonPlayer.CloseVideo();
     }
 
     private void ShowButton()
     {
-        // Вмикаємо обʼєкт кнопки
         if (videoButtonObject == null) return;
         videoButtonObject.SetActive(true);
     }
 
     private void HideButton()
     {
-        // Вимикаємо обʼєкт кнопки
         if (videoButtonObject == null) return;
         videoButtonObject.SetActive(false);
     }
