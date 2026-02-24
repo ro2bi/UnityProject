@@ -19,11 +19,7 @@ public class MathObject : MonoBehaviour, IInteractable
     private void Finish()
     {
         // 1. Определяем точку спавна (позиция этого объекта)
-        Vector3 spawnPosition = transform.position + new Vector3(0, 2f, 0);
-
-        // В 2D важно, чтобы Z-координата была такой же, как у игрока (обычно 0), 
-        // чтобы предмет не провалился "за экран"
-        spawnPosition.z = 0;
+        Vector3 spawnPosition = transform.position + new Vector3(0, 0, 0);
 
         // 2. Создаем предмет
         if (itemToSpawn != null && worldItemPrefab != null)
@@ -36,7 +32,7 @@ public class MathObject : MonoBehaviour, IInteractable
             {
                 // Настраиваем данные предмета (иконку, количество и т.д.)
                 wItem.SetItem(itemToSpawn, 1);
-                Debug.Log($"Награда {itemToSpawn.itemName} появилась в точке {spawnPosition}");
+                Debug.Log($"Нагорода {itemToSpawn.itemName} з'явилась у точці {spawnPosition}");
             }
         }
 
