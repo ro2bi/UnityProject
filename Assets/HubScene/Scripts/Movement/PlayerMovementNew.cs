@@ -177,9 +177,14 @@ public class PlayerMovementNew : MonoBehaviour
             // Сортировка переносимого предмета
             if (carriedItem != null)
             {
-                SpriteRenderer itemSR = carriedItem.GetComponent<SpriteRenderer>();
-                if (itemSR != null)
-                    itemSR.sortingOrder = (lastMoveDirection.y > 0.1f) ? normalSortingOrder - 1 : normalSortingOrder + 1;
+                // ПРОВЕРКА: Если у предмета НЕ стоит замок на сортировку, меняем её
+                if (!carriedItem.lockSortingOrder)
+                {
+                    SpriteRenderer itemSR = carriedItem.GetComponent<SpriteRenderer>();
+                    if (itemSR != null)
+                        itemSR.sortingOrder = (lastMoveDirection.y > 0.1f) ? normalSortingOrder - 1 : normalSortingOrder + 1;
+                }
+                // Если lockSortingOrder == true, код просто ничего не делает со слоем
             }
         }
 
@@ -192,8 +197,7 @@ public class PlayerMovementNew : MonoBehaviour
 
     private void HandleInteraction()
     {
-        // --- 1. ЛОГИКА ВЗАИМОДЕЙСТВИЯ (IInteractable: Торговцы, Стены, Камни) ---
-        // Используем All, чтобы не спотыкаться об объекты дороги
+        // 1. Сначала проверяем MinePointer (флаги и интерактивности вроде рычагов/стен)
         Collider2D[] minePointerHits = Physics2D.OverlapCircleAll(minePointer.position, 0.4f);
 
         foreach (var hit in minePointerHits)
@@ -201,32 +205,28 @@ public class PlayerMovementNew : MonoBehaviour
             IInteractable interactable = hit.GetComponent<IInteractable>();
             if (interactable != null)
             {
-                Debug.Log("Взаимодействие с: " + hit.name);
                 interactable.Interact();
-                return; // Нашли интерактив — выходим
+                return;
             }
-        }
 
-        // --- 2. ЛОГИКА МИН (Если не нашли интерактивных объектов выше) ---
-        foreach (var hit in minePointerHits)
-        {
             MineCell2D cell = hit.GetComponent<MineCell2D>();
             if (cell != null)
             {
                 cell.ToggleFlag();
-                return; // Поставили флаг — выходим
+                return;
             }
         }
 
-        // --- 3. ЛОГИКА ПРЕДМЕТОВ (HoldPoint) ---
-        // Тут оставляем OverlapCircleAll, так как он и так работал со списком
+        // 2. Логика для предметов (HoldPoint)
+        // Используем небольшой радиус, чтобы нужно было стоять прямо перед слотом
         Collider2D[] itemHits = Physics2D.OverlapCircleAll(holdPoint.position, pickupRange);
 
         if (carriedItem == null)
         {
+            // Если руки пустые — пытаемся ПОДНЯТЬ
             foreach (var hit in itemHits)
             {
-                // Сначала проверяем слоты уравнений
+                // Можно забрать из слота
                 EquationSlot slot = hit.GetComponent<EquationSlot>();
                 if (slot != null && slot.isOccupied)
                 {
@@ -234,21 +234,26 @@ public class PlayerMovementNew : MonoBehaviour
                     if (taken != null) { PickUp(taken); return; }
                 }
 
-                // Потом просто предметы на земле
+                // Или подобрать с земли
                 WeightObject item = hit.GetComponent<WeightObject>();
                 if (item != null) { PickUp(item); return; }
             }
         }
         else
         {
+            // Если в руках предмет — пытаемся ВСТАВИТЬ
             foreach (var hit in itemHits)
             {
-                // Пробуем положить в слот
                 EquationSlot slot = hit.GetComponent<EquationSlot>();
-                if (slot != null && !slot.isOccupied) { PlaceIntoSlot(slot); return; }
+                // Если нашли слот и он свободен
+                if (slot != null && !slot.isOccupied)
+                {
+                    PlaceIntoSlot(slot);
+                    return;
+                }
             }
 
-            // Если никуда не положили — просто бросаем
+            // Если нажали "Взаимодействовать", но слота перед нами нет — просто кладем на землю
             Drop();
         }
     }
@@ -373,8 +378,25 @@ public class PlayerMovementNew : MonoBehaviour
 
     private void PlaceIntoSlot(EquationSlot slot)
     {
-        WeightObject itemToPlace = carriedItem; carriedItem = null;
-        ResetJumpParameters(); slot.InsertItem(itemToPlace);
+        if (carriedItem == null) return;
+
+        // ПРОВЕРКА: Подходит ли наш предмет этому слоту?
+        if (slot.CanAccept(carriedItem))
+        {
+            WeightObject itemToPlace = carriedItem;
+            carriedItem = null;
+
+            itemToPlace.transform.SetParent(null);
+            slot.InsertItem(itemToPlace);
+            ResetJumpParameters();
+
+            Debug.Log("Предмет успешно вставлен!");
+        }
+        else
+        {
+            // Если тип не совпадает — просто ничего не делаем (или можно проиграть звук ошибки)
+            Debug.LogWarning($"Этот слот принимает только {slot.acceptedType}, а вы пытаетесь вставить {carriedItem.type}!");
+        }
     }
 
     private void OnDrawGizmos()

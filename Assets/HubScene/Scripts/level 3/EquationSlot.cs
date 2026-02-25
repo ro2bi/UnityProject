@@ -2,8 +2,10 @@
 
 public class EquationSlot : MonoBehaviour
 {
+    [Header("Slot Configuration")]
+    public WeightObject.ItemType acceptedType;
+
     public bool isOccupied = false;
-    public int currentValue;
     private WeightObject currentItem;
 
     [Header("Visual")]
@@ -14,10 +16,15 @@ public class EquationSlot : MonoBehaviour
 
     private void Awake() => slotRenderer = GetComponent<SpriteRenderer>();
 
+    public bool CanAccept(WeightObject item)
+    {
+        // Проверяем: совпадает ли тип предмета с типом, который ждет слот
+        return item != null && item.type == acceptedType;
+    }
+
     public void InsertItem(WeightObject item)
     {
         currentItem = item;
-        currentValue = item.numericValue;
         isOccupied = true;
 
         item.transform.SetParent(transform);
@@ -47,7 +54,6 @@ public class EquationSlot : MonoBehaviour
 
         // ПОЛНЫЙ СБРОС СОСТОЯНИЯ
         currentItem = null;
-        currentValue = 0;
         isOccupied = false; // Слот теперь официально свободен!
 
         item.transform.SetParent(null);
@@ -59,23 +65,38 @@ public class EquationSlot : MonoBehaviour
         return item;
     }
 
+    // В файле EquationSlot.cs
     public void ResetSlotManually()
     {
         if (currentItem != null)
         {
+            // Включаем коллайдер предмету, чтобы игрок снова мог его подобрать
             Collider2D itemCollider = currentItem.GetComponent<Collider2D>();
             if (itemCollider) itemCollider.enabled = true;
         }
 
-        currentItem = null;
-        isOccupied = false;
-        currentValue = 0;
+        currentItem = null;   // Стираем ссылку на предмет
+        isOccupied = false;   // Клетка теперь официально свободна!
+                              // currentValue = 0;  // Если используешь старую систему с int
+
+        // Возвращаем клетке обычный цвет (белый)
         if (slotRenderer) slotRenderer.color = Color.white;
     }
 
     public void SetFeedback(bool isCorrect)
     {
         if (slotRenderer) slotRenderer.color = isCorrect ? correctColor : wrongColor;
+    }
+
+    
+
+    public string GetValueAsString()
+    {
+        if (currentItem == null) return "";
+        if (currentItem.type == WeightObject.ItemType.Number)
+            return currentItem.numericValue.ToString();
+        else
+            return currentItem.operatorSymbol;
     }
 
     public WeightObject GetItem() => currentItem;

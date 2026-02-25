@@ -2,6 +2,7 @@
 using System.Collections;
 using UnityEngine.Video;
 using System.Collections.Generic;
+using System.Data;
 
 // Структура для настройки каждого этапа прямо в инспекторе
 [System.Serializable]
@@ -15,6 +16,13 @@ public class LevelStage
 
 public class EquationManager : MonoBehaviour
 {
+    [Header("Timer Settings")]
+    public float timeLimit = 30f; // Время на уровень в секундах
+    private float currentTimer;
+    private bool timerIsActive = false;
+
+    public UnityEngine.UI.Slider timerUI; 
+
     [Header("Main Settings")]
     public List<LevelStage> stages;      // Список всех уровней
     public int currentStageIndex = 0;    // Текущий уровень
@@ -30,11 +38,12 @@ public class EquationManager : MonoBehaviour
         SetupCurrentStage();
     }
 
-    // Настройка текущего этапа
     public void SetupCurrentStage()
     {
         totalErrors = 0;
         isProcessing = false;
+        currentTimer = timeLimit;
+        timerIsActive = false; // ТЕПЕРЬ ТУТ FALSE ПО УМОЛЧАНИЮ
 
         for (int i = 0; i < stages.Count; i++)
         {
@@ -42,10 +51,18 @@ public class EquationManager : MonoBehaviour
                 stages[i].levelContainer.SetActive(i == currentStageIndex);
         }
 
-        // Если есть видео-интро для этого уровня — играем (необязательно)
         if (stages[currentStageIndex].levelData != null)
         {
             cinematicManager.PlayIntro(stages[currentStageIndex].levelData);
+        }
+    }
+
+    public void StartLevelTimer()
+    {
+        if (!timerIsActive)
+        {
+            timerIsActive = true;
+            Debug.Log("Таймер запущен!");
         }
     }
 
@@ -72,12 +89,20 @@ public class EquationManager : MonoBehaviour
         LevelStage current = stages[currentStageIndex];
         LevelData data = current.levelData;
 
-        int a = current.levelSlots[0].currentValue;
-        int b = current.levelSlots[1].currentValue;
-        int c = current.levelSlots[2].currentValue;
+        // Собираем выражение из всех слотов
+        string expression = "";
+        foreach (var slot in current.levelSlots)
+        {
+            string val = slot.GetValueAsString();
+            if (string.IsNullOrEmpty(val)) continue; 
+            expression += val;
+        }
 
-        int result = CalculateByFormula(a, b, c, data.formulaType);
-        bool isCorrect = (result == data.targetResult);
+        if (string.IsNullOrEmpty(expression)) { isProcessing = false; yield break; }
+
+        // Вычисляем результат
+        double result = EvaluateExpression(expression);
+        bool isCorrect = (Mathf.Approximately((float)result, (float)data.targetResult));
 
         foreach (var slot in current.levelSlots) slot.SetFeedback(isCorrect);
 
@@ -85,23 +110,39 @@ public class EquationManager : MonoBehaviour
 
         if (isCorrect)
         {
-            // ПРОВЕРКА: последний ли это уровень в списке
             bool isLast = (currentStageIndex == stages.Count - 1);
-
-            // Передаем флаг isLast в CinematicManager
             cinematicManager.PlayOutcome(data.winVideo, true, isLast, totalErrors);
         }
         else
         {
             totalErrors++;
+            // Для простоты оставим логику "Больше/Меньше", 
+            // хотя со сложными знаками она станет менее предсказуемой
             VideoClip failVideo = (result < data.targetResult) ? data.tooLowVideo : data.tooHighVideo;
-
-            // При ошибке всегда передаем false (кнопка Quit должна быть видна)
             cinematicManager.PlayOutcome(failVideo, false, false);
 
             yield return new WaitForSeconds(0.5f);
             ResetCurrentLevelItems();
             isProcessing = false;
+        }
+    }
+
+    private double EvaluateExpression(string expression)
+    {
+        try
+        {
+            // Заменяем возможные запятые на точки для корректного расчета (на случай локализации)
+            expression = expression.Replace(",", ".");
+
+            DataTable table = new DataTable();
+            var result = table.Compute(expression, "");
+            return System.Convert.ToDouble(result);
+        }
+        catch (System.Exception e)
+        {
+            // Если игрок составил что-то странное (например "5++3"), выведет ошибку в консоль
+            Debug.LogError("Ошибка в математическом выражении: " + expression + " | " + e.Message);
+            return -999999;
         }
     }
 
@@ -156,5 +197,74 @@ public class EquationManager : MonoBehaviour
             }
             slot.ResetSlotManually(); // Метод в скрипте EquationSlot
         }
+    }
+
+    void Update()
+    {
+        if (timerIsActive && !isProcessing)
+        {
+            currentTimer -= Time.deltaTime;
+
+            if (timerUI != null)
+                timerUI.value = currentTimer / timeLimit;
+
+            if (currentTimer <= 0)
+            {
+                OnTimeOut();
+            }
+        }
+    }
+
+    private void OnTimeOut()
+    {
+        Debug.Log("Время вышло! Предметы меняются местами.");
+        ShuffleItemsPositions();
+        currentTimer = timeLimit; // Сбрасываем таймер, чтобы дать еще попытку
+    }
+
+    private void ShuffleItemsPositions()
+    {
+        LevelStage current = stages[currentStageIndex];
+
+        // 1. ОЧИЩАЕМ ВСЕ СЛОТЫ
+        foreach (var slot in current.levelSlots)
+        {
+            if (slot != null)
+            {
+                // Если в слоте был предмет, мы его не удаляем из игры, 
+                // а просто говорим ему вернуться на базу
+                WeightObject item = slot.GetItem();
+                if (item != null)
+                {
+                    item.ReturnToStart();
+                }
+
+                // ПРИНУДИТЕЛЬНЫЙ СБРОС СОСТОЯНИЯ КЛЕТКИ
+                slot.ResetSlotManually();
+            }
+        }
+
+        // 2. ПОЛУЧАЕМ ВСЕ ПРЕДМЕТЫ УРОВНЯ (которые должны перемешаться)
+        WeightObject[] items = current.levelContainer.GetComponentsInChildren<WeightObject>();
+
+        if (items.Length < 2) return;
+
+        // Запоминаем текущие стартовые позиции всех предметов
+        Vector3[] positions = new Vector3[items.Length];
+        for (int i = 0; i < items.Length; i++)
+        {
+            positions[i] = items[i].startPosition;
+        }
+
+        // 3. ПЕРЕМЕЩАЕМ ПРЕДМЕТЫ НА НОВЫЕ МЕСТА (сдвиг по кругу)
+        for (int i = 0; i < items.Length; i++)
+        {
+            int nextIndex = (i + 1) % items.Length;
+            items[i].StopAllCoroutines();
+            // Запускаем плавный переезд в новую точку
+            items[i].StartCoroutine(items[i].MoveToPos(positions[nextIndex]));
+        }
+
+        Debug.Log("Таймер истек: слоты очищены, предметы переехали.");
     }
 }
