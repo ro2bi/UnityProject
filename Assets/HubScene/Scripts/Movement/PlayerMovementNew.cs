@@ -136,6 +136,7 @@ public class PlayerMovementNew : MonoBehaviour
             return;
         }
 
+
         float h = 0; float v = 0;
         if (Input.GetKey(KeybindManager.GetKey(KeybindManager.MOVE_RIGHT))) h = 1;
         else if (Input.GetKey(KeybindManager.GetKey(KeybindManager.MOVE_LEFT))) h = -1;
@@ -151,8 +152,6 @@ public class PlayerMovementNew : MonoBehaviour
             anim.SetBool("IsMovingBackward", v < 0);
             anim.SetBool("IsMovingRight", h > 0);
             anim.SetBool("IsMovingLeft", h < 0);
-            anim.SetFloat("LookX", lastMoveDirection.x);
-            anim.SetFloat("LookY", lastMoveDirection.y);
         }
 
         if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.JUMP)))
@@ -164,7 +163,7 @@ public class PlayerMovementNew : MonoBehaviour
                 StartCoroutine(JumpRoutine());
             }
         }
-        
+
     }
 
     private void UpdatePointers()
@@ -217,43 +216,54 @@ public class PlayerMovementNew : MonoBehaviour
             }
         }
 
-        // 2. Логика для предметов (HoldPoint)
-        // Используем небольшой радиус, чтобы нужно было стоять прямо перед слотом
         Collider2D[] itemHits = Physics2D.OverlapCircleAll(holdPoint.position, pickupRange);
 
         if (carriedItem == null)
         {
-            // Если руки пустые — пытаемся ПОДНЯТЬ
+            // ЛОГИКА ПОДНЯТИЯ (оставляем как есть или чуть уточняем)
             foreach (var hit in itemHits)
             {
-                // Можно забрать из слота
                 EquationSlot slot = hit.GetComponent<EquationSlot>();
-                if (slot != null && slot.isOccupied)
-                {
-                    WeightObject taken = slot.RemoveItem();
-                    if (taken != null) { PickUp(taken); return; }
-                }
-
-                // Или подобрать с земли
+                if (slot != null && slot.isOccupied) { PickUp(slot.RemoveItem()); return; }
                 WeightObject item = hit.GetComponent<WeightObject>();
                 if (item != null) { PickUp(item); return; }
             }
         }
         else
         {
-            // Если в руках предмет — пытаемся ВСТАВИТЬ
+            // УЛУЧШЕННАЯ ЛОГИКА ВСТАВКИ
+            EquationSlot bestSlot = null;
+            float minDistance = float.MaxValue;
+
             foreach (var hit in itemHits)
             {
                 EquationSlot slot = hit.GetComponent<EquationSlot>();
-                // Если нашли слот и он свободен
+
+                // Если это слот и он не занят
                 if (slot != null && !slot.isOccupied)
                 {
-                    PlaceIntoSlot(slot);
-                    return;
+                    // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: проверяем, подходит ли тип ПРЕЖДЕ ЧЕМ выбирать слот
+                    if (slot.CanAccept(carriedItem))
+                    {
+                        // Если нашли подходящий, запоминаем ближайший из подходящих
+                        float dist = Vector2.Distance(holdPoint.position, hit.transform.position);
+                        if (dist < minDistance)
+                        {
+                            minDistance = dist;
+                            bestSlot = slot;
+                        }
+                    }
                 }
             }
 
-            // Если нажали "Взаимодействовать", но слота перед нами нет — просто кладем на землю
+            // Если нашли хоть один ПОДХОДЯЩИЙ слот в радиусе — вставляем в него
+            if (bestSlot != null)
+            {
+                PlaceIntoSlot(bestSlot);
+                return;
+            }
+
+            // Если подходящих слотов рядом нет, а кнопка нажата — просто бросаем на землю
             Drop();
         }
     }
@@ -405,5 +415,14 @@ public class PlayerMovementNew : MonoBehaviour
         Gizmos.color = Color.yellow; Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
         if (holdPoint != null) { Gizmos.color = Color.blue; Gizmos.DrawWireSphere(holdPoint.position, pickupRange); }
         if (minePointer != null) { Gizmos.color = Color.red; Gizmos.DrawWireSphere(minePointer.position, 0.2f); }
+    }
+
+    public void ForceDrop()
+    {
+        if (carriedItem != null)
+        {
+            // Просто вызываем наш существующий метод Drop
+            Drop();
+        }
     }
 }

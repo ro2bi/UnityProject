@@ -1,152 +1,178 @@
 using UnityEngine;
+using UnityEngine.UI;
 
-// Менеджер керує стінами етапів та телепортами
-// Обʼєкти етапів не вимикаються
-// При правильному виборі етап закривається і відкривається наступний
-// При помилці всі етапи скидаються і гравець телепортується у точку програшу
 public class LevelStagesManager : MonoBehaviour
 {
     [System.Serializable]
-    public class StageData
+    public class EquationVariant
     {
-        // Індекс етапу починаючи з 0
-        public int stageIndex;
-
-        // Стіни які закривають вхід у етап
-        public GameObject enterWalls;
-
-        // Стіни які зʼявляються позаду після проходження етапу
-        public GameObject closeBehindWalls;
-
-        // Точка телепорта після проходження цього етапу
-        public Transform teleportAfterStage;
+        public GameObject visualObject;
+        public bool isUpperTriggerCorrect;
     }
 
-    [Header("Player")]
-    // Transform гравця
+    [System.Serializable]
+    public class StageData
+    {
+        public int stageIndex;
+        public GameObject enterWalls;
+        public GameObject closeBehindWalls;
+        public Transform teleportAfterStage;
+
+        [Header("Timer & Equations")]
+        public ChoiceTrigger upperTrigger;
+        public ChoiceTrigger lowerTrigger;
+        public EquationVariant[] variants;
+        public float timeLimit = 5f;
+        [HideInInspector] public int currentVariantIndex = 0;
+    }
+
+    [Header("Player & Physics")]
     [SerializeField] private Transform player;
-
-    // Rigidbody2D гравця
     [SerializeField] private Rigidbody2D playerRb;
-
-    [Header("Lose")]
-    // Точка телепорта у випадку програшу
-    // Підключається вручну в інспекторі
     [SerializeField] private Transform loseTeleportPoint;
 
+    [Header("UI Timer")]
+    [SerializeField] private Slider timerSlider;
+    [SerializeField] private GameObject sliderContainer;
+
     [Header("Stages")]
-    // Дані всіх етапів
     [SerializeField] private StageData[] stages;
 
     private Vector3 startPosition;
     private int currentStage;
-
-    private void Awake()
-    {
-        if (player == null || playerRb == null || loseTeleportPoint == null || stages == null || stages.Length == 0)
-        {
-            Debug.LogError("LevelStagesManager: відсутні обовʼязкові посилання");
-            enabled = false;
-            return;
-        }
-    }
+    private float timerValue;
+    private bool isTimerActive;
 
     private void Start()
     {
-        // Запамʼятовуємо стартову позицію гравця
         startPosition = player.position;
-
-        // Ініціалізуємо рівень
+        if (sliderContainer != null) sliderContainer.SetActive(false);
         ResetLevel();
     }
 
-    // Викликається при правильному виборі
+    private void Update()
+    {
+        if (isTimerActive)
+        {
+            timerValue -= Time.deltaTime;
+
+            if (timerSlider != null)
+            {
+                // Используем лимит времени текущего этапа
+                float currentLimit = stages[currentStage].timeLimit;
+                timerSlider.value = timerValue / currentLimit;
+            }
+
+            // Если время вышло - меняем вариант в ТЕКУЩЕМ этапе и сбрасываем круг
+            if (timerValue <= 0)
+            {
+                SwitchToNextVariant(currentStage);
+            }
+        }
+    }
+
+    // Запускается один раз триггером в начале уровня
+    public void StartLevelTimer()
+    {
+        currentStage = 0;
+        if (sliderContainer != null) sliderContainer.SetActive(true);
+        ResetTimerForStage(0);
+        isTimerActive = true;
+    }
+
+    private void ResetTimerForStage(int stageIdx)
+    {
+        if (stageIdx >= stages.Length) return;
+        timerValue = stages[stageIdx].timeLimit;
+        if (timerSlider != null) timerSlider.value = 1f;
+    }
+
+    public void StopAndHideTimer()
+    {
+        isTimerActive = false;
+        if (sliderContainer != null) sliderContainer.SetActive(false);
+    }
+
+    private void SwitchToNextVariant(int stageIndex)
+    {
+        StageData stage = GetStage(stageIndex);
+        if (stage == null || stage.variants.Length <= 1) return;
+
+        // Скрываем старый вариант, показываем следующий
+        stage.variants[stage.currentVariantIndex].visualObject.SetActive(false);
+        stage.currentVariantIndex = (stage.currentVariantIndex + 1) % stage.variants.Length;
+
+        EquationVariant newVar = stage.variants[stage.currentVariantIndex];
+        newVar.visualObject.SetActive(true);
+
+        // Обновляем правильность путей
+        stage.upperTrigger.SetCorrect(newVar.isUpperTriggerCorrect);
+        stage.lowerTrigger.SetCorrect(!newVar.isUpperTriggerCorrect);
+
+        // Начинаем новый круг таймера для этого же этапа
+        ResetTimerForStage(stageIndex);
+    }
+
     public void OnCorrectChoice(int stageIndex)
     {
-        if (stageIndex != currentStage)
-            return;
+        if (stageIndex != currentStage) return;
 
-        // Закриваємо шлях назад
         SetCloseBehindWalls(stageIndex, true);
 
-        // Телепорт після проходження етапу
         StageData stage = GetStage(stageIndex);
         if (stage != null && stage.teleportAfterStage != null)
-        {
             Teleport(stage.teleportAfterStage.position);
-        }
 
-        // Переходимо до наступного етапу
         currentStage++;
 
+        // ПРОВЕРКА: Если это был последний этап
         if (currentStage >= stages.Length)
-            return;
-
-        // Відкриваємо наступний етап
-        SetEnterWalls(currentStage, false);
+        {
+            StopAndHideTimer(); // ВЫКЛЮЧАЕМ таймер навсегда
+            Debug.Log("Level Complete! Timer Off.");
+        }
+        else
+        {
+            // Если впереди еще есть примеры - открываем стены и сбрасываем таймер на новый этап
+            SetEnterWalls(currentStage, false);
+            ResetTimerForStage(currentStage);
+            Debug.Log($"Stage {stageIndex} passed. Timer reset for Stage {currentStage}");
+        }
     }
 
-    // Викликається при неправильному виборі
     public void OnWrongChoice()
     {
-        // Телепорт у точку програшу
+        StopAndHideTimer();
         Teleport(loseTeleportPoint.position);
-
-        // Скидання стану рівня
         ResetLevel();
-
-        // Повернення на старт
         Teleport(startPosition);
     }
 
-    // Початковий стан рівня
     private void ResetLevel()
     {
         currentStage = 0;
+        StopAndHideTimer();
 
         for (int i = 0; i < stages.Length; i++)
         {
             SetEnterWalls(i, true);
             SetCloseBehindWalls(i, false);
-        }
 
-        // Перший етап відкритий
+            if (stages[i].variants.Length > 0)
+            {
+                foreach (var v in stages[i].variants) v.visualObject.SetActive(false);
+                stages[i].variants[0].visualObject.SetActive(true);
+                stages[i].currentVariantIndex = 0;
+
+                stages[i].upperTrigger.SetCorrect(stages[i].variants[0].isUpperTriggerCorrect);
+                stages[i].lowerTrigger.SetCorrect(!stages[i].variants[0].isUpperTriggerCorrect);
+            }
+        }
         SetEnterWalls(0, false);
     }
 
-    private void SetEnterWalls(int stageIndex, bool value)
-    {
-        StageData stage = GetStage(stageIndex);
-        if (stage != null && stage.enterWalls != null)
-        {
-            stage.enterWalls.SetActive(value);
-        }
-    }
-
-    private void SetCloseBehindWalls(int stageIndex, bool value)
-    {
-        StageData stage = GetStage(stageIndex);
-        if (stage != null && stage.closeBehindWalls != null)
-        {
-            stage.closeBehindWalls.SetActive(value);
-        }
-    }
-
-    private StageData GetStage(int stageIndex)
-    {
-        for (int i = 0; i < stages.Length; i++)
-        {
-            if (stages[i].stageIndex == stageIndex)
-                return stages[i];
-        }
-        return null;
-    }
-
-    // Телепорт з обнуленням швидкості
-    private void Teleport(Vector3 position)
-    {
-        playerRb.velocity = Vector2.zero;
-        playerRb.angularVelocity = 0f;
-        player.position = position;
-    }
+    private void SetEnterWalls(int idx, bool v) { var s = GetStage(idx); if (s != null && s.enterWalls != null) s.enterWalls.SetActive(v); }
+    private void SetCloseBehindWalls(int idx, bool v) { var s = GetStage(idx); if (s != null && s.closeBehindWalls != null) s.closeBehindWalls.SetActive(v); }
+    private StageData GetStage(int idx) { foreach (var s in stages) if (s.stageIndex == idx) return s; return null; }
+    private void Teleport(Vector3 pos) { playerRb.velocity = Vector2.zero; player.position = pos; }
 }

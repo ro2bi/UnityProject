@@ -1,20 +1,17 @@
 using UnityEngine;
 
-// Тригер вибору шляху
-// Працює тільки з конкретним гравцем
 public class ChoiceTrigger : MonoBehaviour
 {
-    // Індекс етапу до якого належить тригер
     [SerializeField] private int stageIndex;
-
-    // Чи є вибір правильним
     [SerializeField] private bool isCorrect;
-
-    // Менеджер етапів
     [SerializeField] private LevelStagesManager manager;
-
-    // Transform гравця
     [SerializeField] private Transform player;
+
+    // Метод для динамической смены правильности ответа
+    public void SetCorrect(bool value)
+    {
+        isCorrect = value;
+    }
 
     private void Awake()
     {
@@ -31,12 +28,8 @@ public class ChoiceTrigger : MonoBehaviour
             return;
 
         if (isCorrect)
-        {
             manager.OnCorrectChoice(stageIndex);
-        }
         else
-        {
             manager.OnWrongChoice();
-        }
     }
 }
