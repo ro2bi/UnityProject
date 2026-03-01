@@ -1,35 +1,24 @@
 using UnityEngine;
 
-public class ChoiceTrigger : MonoBehaviour
+namespace EquationSystem
 {
-    [SerializeField] private int stageIndex;
-    [SerializeField] private bool isCorrect;
-    [SerializeField] private LevelStagesManager manager;
-    [SerializeField] private Transform player;
-
-    // Метод для динамической смены правильности ответа
-    public void SetCorrect(bool value)
+    public class ChoiceTrigger : MonoBehaviour
     {
-        isCorrect = value;
-    }
+        [SerializeField] private int stageIndex;
+        [SerializeField] private bool isCorrect; // Менеджер будет менять это значение
+        [SerializeField] private LevelStagesManager manager;
+        [SerializeField] private Transform player;
 
-    private void Awake()
-    {
-        if (manager == null || player == null)
+        public void SetCorrect(bool value) => isCorrect = value;
+
+        private void OnTriggerEnter2D(Collider2D other)
         {
-            Debug.LogError("ChoiceTrigger: відсутні посилання");
-            enabled = false;
+            if (other.transform != player) return;
+
+            if (isCorrect)
+                manager.OnCorrectChoice(stageIndex);
+            else
+                manager.OnWrongChoice();
         }
-    }
-
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.transform != player)
-            return;
-
-        if (isCorrect)
-            manager.OnCorrectChoice(stageIndex);
-        else
-            manager.OnWrongChoice();
     }
 }

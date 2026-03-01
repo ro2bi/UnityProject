@@ -166,33 +166,7 @@ public class PlayerMovementNew : MonoBehaviour
 
     }
 
-    private void UpdatePointers()
-    {
-        // 1. Позиция HoldPoint (Предметы)
-        if (holdPoint != null)
-        {
-            holdPoint.localPosition = (Vector3)lastMoveDirection * holdPointDistance;
-
-            // Сортировка переносимого предмета
-            if (carriedItem != null)
-            {
-                // ПРОВЕРКА: Если у предмета НЕ стоит замок на сортировку, меняем её
-                if (!carriedItem.lockSortingOrder)
-                {
-                    SpriteRenderer itemSR = carriedItem.GetComponent<SpriteRenderer>();
-                    if (itemSR != null)
-                        itemSR.sortingOrder = (lastMoveDirection.y > 0.1f) ? normalSortingOrder - 1 : normalSortingOrder + 1;
-                }
-                // Если lockSortingOrder == true, код просто ничего не делает со слоем
-            }
-        }
-
-        // 2. Позиция MinePointer (Указатель для мин)
-        if (minePointer != null)
-        {
-            minePointer.localPosition = (Vector3)lastMoveDirection * minePointerDistance;
-        }
-    }
+    
 
     private void HandleInteraction()
     {
@@ -274,17 +248,26 @@ public class PlayerMovementNew : MonoBehaviour
         item.GetComponent<Rigidbody2D>().isKinematic = true;
         item.transform.SetParent(holdPoint);
         item.transform.localPosition = Vector3.zero;
+
+        // ИЗМЕНЕНИЕ: Меняем слой только если он НЕ заблокирован
+        if (!item.lockSortingOrder)
+        {
+            SpriteRenderer itemSR = item.GetComponent<SpriteRenderer>();
+            if (itemSR != null) itemSR.sortingOrder = normalSortingOrder + 1;
+        }
+
         currentJumpHeight -= (item.weight * 0.05f);
     }
 
     private void Drop()
     {
         if (carriedItem == null) return;
-        Vector3 worldPos = carriedItem.transform.position;
-        carriedItem.transform.SetParent(null);
-        carriedItem.transform.position = worldPos;
+        WeightObject item = carriedItem;
+        Vector3 worldPos = item.transform.position;
+        item.transform.SetParent(null);
+        item.transform.position = worldPos;
 
-        Rigidbody2D itemRb = carriedItem.GetComponent<Rigidbody2D>();
+        Rigidbody2D itemRb = item.GetComponent<Rigidbody2D>();
         if (itemRb != null)
         {
             itemRb.isKinematic = false;
@@ -292,10 +275,36 @@ public class PlayerMovementNew : MonoBehaviour
             itemRb.velocity = Vector2.zero;
         }
 
-        carriedItem.transform.position += (Vector3)lastMoveDirection * 0.2f;
-        carriedItem.GetComponent<SpriteRenderer>().sortingOrder = normalSortingOrder;
+        item.transform.position += (Vector3)lastMoveDirection * 0.2f;
+
+        // ИЗМЕНЕНИЕ: Возвращаем стандартный слой только если он НЕ заблокирован
+        if (!item.lockSortingOrder)
+        {
+            SpriteRenderer itemSR = item.GetComponent<SpriteRenderer>();
+            if (itemSR != null) itemSR.sortingOrder = normalSortingOrder;
+        }
+
         carriedItem = null;
         ResetJumpParameters();
+    }
+
+    private void UpdatePointers()
+    {
+        if (holdPoint != null)
+        {
+            holdPoint.localPosition = (Vector3)lastMoveDirection * holdPointDistance;
+
+            // ИЗМЕНЕНИЕ: Глубинная сортировка при ходьбе (за спину / перед собой)
+            if (carriedItem != null && !carriedItem.lockSortingOrder)
+            {
+                SpriteRenderer itemSR = carriedItem.GetComponent<SpriteRenderer>();
+                if (itemSR != null)
+                    itemSR.sortingOrder = (lastMoveDirection.y > 0.1f) ? normalSortingOrder - 1 : normalSortingOrder + 1;
+            }
+        }
+
+        if (minePointer != null)
+            minePointer.localPosition = (Vector3)lastMoveDirection * minePointerDistance;
     }
 
     // Вспомогательные методы (Jump, Fall и т.д.) - без изменений

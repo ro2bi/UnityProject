@@ -1,16 +1,19 @@
 using UnityEngine;
 
-public class LevelStartTrigger1 : MonoBehaviour
+namespace EquationSystem
 {
-    public LevelStagesManager manager;
-    public Transform player;
-
-    private void OnTriggerEnter2D(Collider2D other)
+    public class LevelStartTrigger1 : MonoBehaviour
     {
-        if (other.transform == player)
+        [SerializeField] private LevelStagesManager manager;
+        [SerializeField] private Transform player;
+
+        private void OnTriggerEnter2D(Collider2D other)
         {
-            manager.StartLevelTimer();
-            gameObject.SetActive(false);
+            if (other.transform == player)
+            {
+                manager.StartLevelTimer();
+                gameObject.SetActive(false); // Выключается после активации
+            }
         }
     }
 }
