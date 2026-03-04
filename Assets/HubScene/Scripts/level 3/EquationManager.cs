@@ -11,7 +11,17 @@ public class LevelStage
     public string levelName;
     public LevelData levelData;
     public GameObject levelContainer;
-    public EquationSlot[] levelSlots; // Убедись, что тут ВСЕ 5 слотов для КАЖДОГО уровня
+
+    [Header("Slots")]
+    public EquationSlot[] levelSlots;
+    public EquationSlot[] rightSideSlots;
+
+    [Header("Optional: Result Tablets")]
+    public TMP_Text leftSideDisplay;
+    public TMP_Text rightSideDisplay;
+
+    [Header("Level Rewards")]
+    public GameObject wallToDeactivate; // ТА САМАЯ СТЕНА для конкретного уровня
 }
 
 public class EquationManager : MonoBehaviour
@@ -20,7 +30,7 @@ public class EquationManager : MonoBehaviour
     public List<LevelStage> stages;
     public int currentStageIndex = 0;
     public CinematicManager cinematicManager;
-    public GameObject finalWall;
+    public GameObject finalWall; // Общая стена (если нужна в конце игры)
 
     [Header("Visual Goal")]
     public TMP_Text goalTextMesh;
@@ -51,22 +61,20 @@ public class EquationManager : MonoBehaviour
     {
         totalErrors = 0;
         isProcessing = false;
-        timerIsActive = false; // Выключаем до старта
+        timerIsActive = false;
         currentTimer = timeLimit;
 
-        if (timerUI != null)
-        {
-            timerUI.gameObject.SetActive(false);
-            timerUI.value = 1f;
-        }
+        if (timerUI != null) { timerUI.gameObject.SetActive(false); timerUI.value = 1f; }
 
         if (currentStageIndex >= stages.Count) return;
         LevelStage current = stages[currentStageIndex];
 
         if (goalTextMesh != null && current.levelData != null)
-            goalTextMesh.text = current.levelData.targetResult.ToString();
+        {
+            bool isComparisonMode = current.rightSideSlots != null && current.rightSideSlots.Length > 0;
+            goalTextMesh.text = isComparisonMode ? "=" : current.levelData.targetResult.ToString();
+        }
 
-        // Важно: обновляем список предметов именно этого контейнера
         itemsOnCurrentLevel.Clear();
         if (current.levelContainer != null)
         {
@@ -75,40 +83,42 @@ public class EquationManager : MonoBehaviour
         }
 
         ResetCurrentLevelItems();
-
-        if (current.levelData != null)
-            cinematicManager.PlayIntro(current.levelData);
+        UpdateTablets();
+        if (current.levelData != null) cinematicManager.PlayIntro(current.levelData);
     }
 
-    public void StartLevelTimer()
+    public void UpdateTablets()
     {
-        if (!timerIsActive)
+        if (currentStageIndex >= stages.Count) return;
+        LevelStage current = stages[currentStageIndex];
+
+        if (current.leftSideDisplay != null)
         {
-            timerIsActive = true;
-            if (timerUI != null) timerUI.gameObject.SetActive(true);
-            Debug.Log("Таймер запущен!");
+            string expr = "";
+            foreach (var s in current.levelSlots) expr += s.GetValueAsString();
+            double res = EvaluateExpression(expr);
+            current.leftSideDisplay.text = (res == -99999 || expr == "") ? "?" : res.ToString();
+        }
+
+        if (current.rightSideDisplay != null)
+        {
+            string expr = "";
+            foreach (var s in current.rightSideSlots) expr += s.GetValueAsString();
+            double res = EvaluateExpression(expr);
+            current.rightSideDisplay.text = (res == -99999 || expr == "") ? "?" : res.ToString();
         }
     }
 
     public void CheckFullEquation()
     {
+        UpdateTablets();
         if (isProcessing) return;
-
         LevelStage current = stages[currentStageIndex];
 
-        // ДЛЯ ОТЛАДКИ: Если не считает, посмотри в консоль, сколько слотов видит скрипт
-        int occupiedCount = 0;
-        foreach (var slot in current.levelSlots)
+        foreach (var slot in current.levelSlots) if (slot == null || !slot.isOccupied) return;
+        if (current.rightSideSlots != null && current.rightSideSlots.Length > 0)
         {
-            if (slot != null && slot.isOccupied) occupiedCount++;
-        }
-
-        Debug.Log($"Проверка: {occupiedCount} из {current.levelSlots.Length} слотов заполнены.");
-
-        // Проверяем, все ли слоты, указанные в инспекторе для ЭТОГО уровня, заполнены
-        foreach (var slot in current.levelSlots)
-        {
-            if (slot == null || !slot.isOccupied) return;
+            foreach (var slot in current.rightSideSlots) if (slot == null || !slot.isOccupied) return;
         }
 
         StartCoroutine(ProcessResultRoutine());
@@ -119,15 +129,27 @@ public class EquationManager : MonoBehaviour
         isProcessing = true;
         LevelStage current = stages[currentStageIndex];
 
-        string expression = "";
-        foreach (var slot in current.levelSlots) expression += slot.GetValueAsString();
+        string leftExpr = "";
+        foreach (var slot in current.levelSlots) leftExpr += slot.GetValueAsString();
+        double leftVal = EvaluateExpression(leftExpr);
 
-        Debug.Log("Вычисляем выражение: " + expression);
+        bool isCorrect = false;
 
-        double result = EvaluateExpression(expression);
-        bool isCorrect = Mathf.Approximately((float)result, (float)current.levelData.targetResult);
+        if (current.rightSideSlots != null && current.rightSideSlots.Length > 0)
+        {
+            string rightExpr = "";
+            foreach (var slot in current.rightSideSlots) rightExpr += slot.GetValueAsString();
+            double rightVal = EvaluateExpression(rightExpr);
+            isCorrect = (leftVal != -99999 && rightVal != -99999) && Mathf.Approximately((float)leftVal, (float)rightVal);
+        }
+        else
+        {
+            isCorrect = Mathf.Approximately((float)leftVal, (float)current.levelData.targetResult);
+        }
 
         foreach (var slot in current.levelSlots) slot.SetFeedback(isCorrect);
+        if (current.rightSideSlots != null)
+            foreach (var slot in current.rightSideSlots) slot.SetFeedback(isCorrect);
 
         yield return new WaitForSeconds(1.2f);
 
@@ -136,7 +158,11 @@ public class EquationManager : MonoBehaviour
             timerIsActive = false;
             if (timerUI != null) timerUI.gameObject.SetActive(false);
 
-            ShuffleItemsPositions();
+            // НОВОЕ: Отключаем стену ЭТОГО уровня
+            if (current.wallToDeactivate != null)
+            {
+                current.wallToDeactivate.SetActive(false);
+            }
 
             bool isLast = (currentStageIndex == stages.Count - 1);
             cinematicManager.PlayOutcome(current.levelData.winVideo, true, isLast, totalErrors);
@@ -145,6 +171,7 @@ public class EquationManager : MonoBehaviour
         {
             totalErrors++;
             ResetCurrentLevelItems();
+            UpdateTablets();
             isProcessing = false;
         }
     }
@@ -155,62 +182,32 @@ public class EquationManager : MonoBehaviour
         catch { return -99999; }
     }
 
-    private void OnTimeOut()
-    {
-        ShuffleItemsPositions();
-        currentTimer = timeLimit;
-    }
+    private void OnTimeOut() { ShuffleItemsPositions(); UpdateTablets(); currentTimer = timeLimit; }
 
     private void ShuffleItemsPositions()
     {
         FindObjectOfType<PlayerMovementNew>()?.ForceDrop();
         LevelStage current = stages[currentStageIndex];
-
-        foreach (var slot in current.levelSlots)
-        {
-            slot.GetItem()?.ReturnToStart();
-            slot.ResetSlotManually();
-        }
+        foreach (var slot in current.levelSlots) { slot.GetItem()?.ReturnToStart(); slot.ResetSlotManually(); }
+        if (current.rightSideSlots != null)
+            foreach (var slot in current.rightSideSlots) { slot.GetItem()?.ReturnToStart(); slot.ResetSlotManually(); }
 
         if (itemsOnCurrentLevel.Count < 2) return;
-
-        Vector3[] positions = new Vector3[itemsOnCurrentLevel.Count];
-        for (int i = 0; i < itemsOnCurrentLevel.Count; i++)
-            positions[i] = itemsOnCurrentLevel[i].startPosition;
-
-        for (int i = 0; i < itemsOnCurrentLevel.Count; i++)
-        {
-            int nextIndex = (i + 1) % itemsOnCurrentLevel.Count;
-            itemsOnCurrentLevel[i].StopAllCoroutines();
-            itemsOnCurrentLevel[i].startPosition = positions[nextIndex];
-            itemsOnCurrentLevel[i].StartCoroutine(itemsOnCurrentLevel[i].MoveToPos(positions[nextIndex]));
-        }
+        foreach (var item in itemsOnCurrentLevel) item.ReturnToStart();
     }
 
     private void ResetCurrentLevelItems()
     {
         if (currentStageIndex >= stages.Count) return;
-        foreach (var slot in stages[currentStageIndex].levelSlots)
-        {
-            slot.GetItem()?.ReturnToStart();
-            slot.ResetSlotManually();
-        }
+        LevelStage current = stages[currentStageIndex];
+        foreach (var slot in current.levelSlots) { slot.GetItem()?.ReturnToStart(); slot.ResetSlotManually(); }
+        if (current.rightSideSlots != null)
+            foreach (var slot in current.rightSideSlots) { slot.GetItem()?.ReturnToStart(); slot.ResetSlotManually(); }
     }
 
-    public void GoToNextLevel()
-    {
-        if (currentStageIndex < stages.Count - 1)
-        {
-            currentStageIndex++;
-            SetupCurrentStage();
+    public void StartLevelTimer() { timerIsActive = true; if (timerUI != null) timerUI.gameObject.SetActive(true); }
+    public void GoToNextLevel() { if (currentStageIndex < stages.Count - 1) { currentStageIndex++; SetupCurrentStage(); StartLevelTimer(); } }
 
-            // ИСПРАВЛЕНИЕ: Автоматически запускаем таймер на следующем уровне
-            StartLevelTimer();
-        }
-    }
-
-    public void OpenWallAndFinish()
-    {
-        if (finalWall != null) finalWall.SetActive(false);
-    }
+    // Этот метод теперь можно использовать для финальной стены в самом конце игры
+    public void OpenWallAndFinish() { if (finalWall != null) finalWall.SetActive(false); }
 }

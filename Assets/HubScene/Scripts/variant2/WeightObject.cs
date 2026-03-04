@@ -1,57 +1,74 @@
 using UnityEngine;
-using System.Collections; // Нужно для корутин
+using System.Collections;
 
-[RequireComponent(typeof(Rigidbody2D))]
 public class WeightObject : MonoBehaviour
 {
-
-    public bool lockSortingOrder = false;
-
     public enum ItemType { Number, Operator }
-    [Header("Type Settings")]
-    public ItemType type = ItemType.Number;
+    public ItemType type;
     public int numericValue;
     public string operatorSymbol;
 
-    [Header("Physics")]
-    public float weight = 1f;
+    [Header("Old Systems (Don't delete!)")]
+    public float weight;
+    public bool lockSortingOrder;
+
+    [Header("Visibility Settings")]
+    public bool revealOnlyInSlot = false;
+    public GameObject visualContent;
+
+    // НОВОЕ: Этот флаг запомнит, что число уже видели
+    private bool hasBeenRevealed = false;
 
     [HideInInspector] public Vector3 startPosition;
 
     private void Start()
     {
-        Rigidbody2D rb = GetComponent<Rigidbody2D>();
-        if (rb != null) rb.mass = weight;
         startPosition = transform.position;
+
+        if (revealOnlyInSlot && visualContent != null)
+            visualContent.SetActive(false);
+        else if (visualContent != null)
+            visualContent.SetActive(true);
+    }
+
+    public void SetVisibility(bool isVisible)
+    {
+        if (!revealOnlyInSlot) return;
+
+        if (isVisible)
+        {
+            // Как только число проявилось (на весах или в слоте), 
+            // мы ставим флаг в true навсегда.
+            hasBeenRevealed = true;
+            if (visualContent != null) visualContent.SetActive(true);
+        }
+        else
+        {
+            // Пытаемся скрыть число ТОЛЬКО если оно еще ни разу не было проявлено.
+            // Если hasBeenRevealed уже true, число останется видимым.
+            if (!hasBeenRevealed && visualContent != null)
+            {
+                visualContent.SetActive(false);
+            }
+        }
     }
 
     public void ReturnToStart()
     {
-        transform.SetParent(null);
-        // Вместо мгновенного перемещения используем плавное, если хотим
         StopAllCoroutines();
         StartCoroutine(MoveToPos(startPosition));
-
-        Rigidbody2D rb = GetComponent<Rigidbody2D>();
-        if (rb != null) rb.isKinematic = false;
-        Collider2D col = GetComponent<Collider2D>();
-        if (col != null) col.enabled = true;
     }
 
-    // Плавное перемещение к новой точке
-    public IEnumerator MoveToPos(Vector3 targetPos)
+    public IEnumerator MoveToPos(Vector3 target)
     {
-        float elapsed = 0;
-        float duration = 0.5f; // Полдюжины секунд на переезд
-        Vector3 startPos = transform.position;
-
-        while (elapsed < duration)
+        float t = 0;
+        Vector3 start = transform.position;
+        while (t < 1)
         {
-            transform.position = Vector3.Lerp(startPos, targetPos, elapsed / duration);
-            elapsed += Time.deltaTime;
+            t += Time.deltaTime * 5;
+            transform.position = Vector3.Lerp(start, target, t);
             yield return null;
         }
-        transform.position = targetPos;
-        startPosition = targetPos; // Обновляем "базу"
+        transform.position = target;
     }
 }
