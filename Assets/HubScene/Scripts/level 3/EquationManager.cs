@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using UnityEngine.UI;
 using TMPro;
+using System.Globalization;
 
 [System.Serializable]
 public class LevelStage
@@ -12,16 +13,21 @@ public class LevelStage
     public LevelData levelData;
     public GameObject levelContainer;
 
-    [Header("Slots")]
+    [Header("Настройки Режима")]
+    public bool isComparisonMode = false;
+    [Tooltip("Если включено, то ПОСЛЕ завершения этого уровня таймер следующего уровня сам не включится")]
+    public bool stopTimerAfterThisLevel = false; // ТА САМАЯ ГАЛОЧКА
+
+    [Header("Слоты")]
     public EquationSlot[] levelSlots;
     public EquationSlot[] rightSideSlots;
 
-    [Header("Optional: Result Tablets")]
+    [Header("Таблички")]
     public TMP_Text leftSideDisplay;
     public TMP_Text rightSideDisplay;
 
-    [Header("Level Rewards")]
-    public GameObject wallToDeactivate; // ТА САМАЯ СТЕНА для конкретного уровня
+    [Header("Награда")]
+    public GameObject wallToDeactivate;
 }
 
 public class EquationManager : MonoBehaviour
@@ -30,9 +36,9 @@ public class EquationManager : MonoBehaviour
     public List<LevelStage> stages;
     public int currentStageIndex = 0;
     public CinematicManager cinematicManager;
-    public GameObject finalWall; // Общая стена (если нужна в конце игры)
+    public GameObject finalWall;
 
-    [Header("Visual Goal")]
+    [Header("UI элементы")]
     public TMP_Text goalTextMesh;
 
     [Header("Timer Settings")]
@@ -69,10 +75,10 @@ public class EquationManager : MonoBehaviour
         if (currentStageIndex >= stages.Count) return;
         LevelStage current = stages[currentStageIndex];
 
-        if (goalTextMesh != null && current.levelData != null)
+        if (goalTextMesh != null)
         {
-            bool isComparisonMode = current.rightSideSlots != null && current.rightSideSlots.Length > 0;
-            goalTextMesh.text = isComparisonMode ? "=" : current.levelData.targetResult.ToString();
+            if (current.isComparisonMode) goalTextMesh.text = "=";
+            else if (current.levelData != null) goalTextMesh.text = current.levelData.targetResult.ToString();
         }
 
         itemsOnCurrentLevel.Clear();
@@ -84,29 +90,85 @@ public class EquationManager : MonoBehaviour
 
         ResetCurrentLevelItems();
         UpdateTablets();
-        if (current.levelData != null) cinematicManager.PlayIntro(current.levelData);
+        if (current.levelData != null && cinematicManager != null) cinematicManager.PlayIntro(current.levelData);
+    }
+
+    // ИЗМЕНЕННЫЙ МЕТОД ПЕРЕХОДА
+    public void GoToNextLevel()
+    {
+        if (currentStageIndex < stages.Count - 1)
+        {
+            // 1. Проверяем галочку у уровня, который мы ТОЛЬКО ЧТО ЗАКОНЧИЛИ
+            bool skipNextTimer = stages[currentStageIndex].stopTimerAfterThisLevel;
+
+            // 2. Переходим к следующему
+            currentStageIndex++;
+            SetupCurrentStage();
+
+            // 3. Запускаем таймер только если на ПРЕДЫДУЩЕМ уровне не стоял запрет
+            if (!skipNextTimer)
+            {
+                StartLevelTimer();
+            }
+            else
+            {
+                Debug.Log($"[ТАЙМЕР] Автозапуск заблокирован после уровня: {stages[currentStageIndex - 1].levelName}");
+            }
+        }
+    }
+
+    // Лог прогресса в консоль
+    private void LogSlotsProgress()
+    {
+        if (currentStageIndex >= stages.Count) return;
+        LevelStage current = stages[currentStageIndex];
+        int occupiedCount = 0;
+        int totalCount = current.levelSlots.Length + (current.isComparisonMode ? current.rightSideSlots.Length : 0);
+
+        foreach (var s in current.levelSlots) if (s != null && s.isOccupied) occupiedCount++;
+        if (current.isComparisonMode && current.rightSideSlots != null)
+            foreach (var s in current.rightSideSlots) if (s != null && s.isOccupied) occupiedCount++;
+
+        Debug.Log($"[ПРОГРЕСС] Уровень: {current.levelName} | Заполнено: {occupiedCount} / {totalCount}");
     }
 
     public void UpdateTablets()
     {
         if (currentStageIndex >= stages.Count) return;
         LevelStage current = stages[currentStageIndex];
+        LogSlotsProgress();
 
         if (current.leftSideDisplay != null)
         {
-            string expr = "";
-            foreach (var s in current.levelSlots) expr += s.GetValueAsString();
+            string expr = BuildExpression(current.levelSlots);
             double res = EvaluateExpression(expr);
-            current.leftSideDisplay.text = (res == -99999 || expr == "") ? "?" : res.ToString();
+            current.leftSideDisplay.text = (res == -99999) ? "?" : res.ToString();
         }
 
         if (current.rightSideDisplay != null)
         {
-            string expr = "";
-            foreach (var s in current.rightSideSlots) expr += s.GetValueAsString();
-            double res = EvaluateExpression(expr);
-            current.rightSideDisplay.text = (res == -99999 || expr == "") ? "?" : res.ToString();
+            if (current.isComparisonMode)
+            {
+                string expr = BuildExpression(current.rightSideSlots);
+                double res = EvaluateExpression(expr);
+                current.rightSideDisplay.text = (res == -99999) ? "?" : res.ToString();
+            }
+            else if (current.levelData != null)
+            {
+                current.rightSideDisplay.text = current.levelData.targetResult.ToString();
+            }
         }
+    }
+
+    private string BuildExpression(EquationSlot[] slots)
+    {
+        string fullExpr = "";
+        foreach (var s in slots)
+        {
+            if (s != null && s.isOccupied) fullExpr += s.GetValueAsString();
+            else fullExpr += " ";
+        }
+        return fullExpr.Trim();
     }
 
     public void CheckFullEquation()
@@ -116,8 +178,10 @@ public class EquationManager : MonoBehaviour
         LevelStage current = stages[currentStageIndex];
 
         foreach (var slot in current.levelSlots) if (slot == null || !slot.isOccupied) return;
-        if (current.rightSideSlots != null && current.rightSideSlots.Length > 0)
+
+        if (current.isComparisonMode)
         {
+            if (current.rightSideSlots == null || current.rightSideSlots.Length == 0) return;
             foreach (var slot in current.rightSideSlots) if (slot == null || !slot.isOccupied) return;
         }
 
@@ -129,26 +193,23 @@ public class EquationManager : MonoBehaviour
         isProcessing = true;
         LevelStage current = stages[currentStageIndex];
 
-        string leftExpr = "";
-        foreach (var slot in current.levelSlots) leftExpr += slot.GetValueAsString();
+        string leftExpr = BuildExpression(current.levelSlots);
         double leftVal = EvaluateExpression(leftExpr);
-
         bool isCorrect = false;
 
-        if (current.rightSideSlots != null && current.rightSideSlots.Length > 0)
+        if (current.isComparisonMode)
         {
-            string rightExpr = "";
-            foreach (var slot in current.rightSideSlots) rightExpr += slot.GetValueAsString();
+            string rightExpr = BuildExpression(current.rightSideSlots);
             double rightVal = EvaluateExpression(rightExpr);
             isCorrect = (leftVal != -99999 && rightVal != -99999) && Mathf.Approximately((float)leftVal, (float)rightVal);
         }
-        else
+        else if (current.levelData != null)
         {
-            isCorrect = Mathf.Approximately((float)leftVal, (float)current.levelData.targetResult);
+            isCorrect = (leftVal != -99999) && Mathf.Approximately((float)leftVal, (float)current.levelData.targetResult);
         }
 
         foreach (var slot in current.levelSlots) slot.SetFeedback(isCorrect);
-        if (current.rightSideSlots != null)
+        if (current.isComparisonMode && current.rightSideSlots != null)
             foreach (var slot in current.rightSideSlots) slot.SetFeedback(isCorrect);
 
         yield return new WaitForSeconds(1.2f);
@@ -157,15 +218,15 @@ public class EquationManager : MonoBehaviour
         {
             timerIsActive = false;
             if (timerUI != null) timerUI.gameObject.SetActive(false);
-
-            // НОВОЕ: Отключаем стену ЭТОГО уровня
-            if (current.wallToDeactivate != null)
-            {
-                current.wallToDeactivate.SetActive(false);
-            }
+            if (current.wallToDeactivate != null) current.wallToDeactivate.SetActive(false);
 
             bool isLast = (currentStageIndex == stages.Count - 1);
-            cinematicManager.PlayOutcome(current.levelData.winVideo, true, isLast, totalErrors);
+            if (current.levelData != null && cinematicManager != null)
+                cinematicManager.PlayOutcome(current.levelData.winVideo, true, isLast, totalErrors);
+            else
+            {
+                if (isLast) OpenWallAndFinish(); else GoToNextLevel();
+            }
         }
         else
         {
@@ -178,7 +239,14 @@ public class EquationManager : MonoBehaviour
 
     private double EvaluateExpression(string expr)
     {
-        try { return System.Convert.ToDouble(new DataTable().Compute(expr.Replace(",", "."), "")); }
+        if (string.IsNullOrWhiteSpace(expr)) return -99999;
+        try
+        {
+            var table = new DataTable();
+            string cleanExpr = expr.Replace(",", ".");
+            object result = table.Compute(cleanExpr, "");
+            return System.Convert.ToDouble(result, CultureInfo.InvariantCulture);
+        }
         catch { return -99999; }
     }
 
@@ -189,7 +257,7 @@ public class EquationManager : MonoBehaviour
         FindObjectOfType<PlayerMovementNew>()?.ForceDrop();
         LevelStage current = stages[currentStageIndex];
         foreach (var slot in current.levelSlots) { slot.GetItem()?.ReturnToStart(); slot.ResetSlotManually(); }
-        if (current.rightSideSlots != null)
+        if (current.isComparisonMode && current.rightSideSlots != null)
             foreach (var slot in current.rightSideSlots) { slot.GetItem()?.ReturnToStart(); slot.ResetSlotManually(); }
 
         if (itemsOnCurrentLevel.Count < 2) return;
@@ -201,13 +269,10 @@ public class EquationManager : MonoBehaviour
         if (currentStageIndex >= stages.Count) return;
         LevelStage current = stages[currentStageIndex];
         foreach (var slot in current.levelSlots) { slot.GetItem()?.ReturnToStart(); slot.ResetSlotManually(); }
-        if (current.rightSideSlots != null)
+        if (current.isComparisonMode && current.rightSideSlots != null)
             foreach (var slot in current.rightSideSlots) { slot.GetItem()?.ReturnToStart(); slot.ResetSlotManually(); }
     }
 
     public void StartLevelTimer() { timerIsActive = true; if (timerUI != null) timerUI.gameObject.SetActive(true); }
-    public void GoToNextLevel() { if (currentStageIndex < stages.Count - 1) { currentStageIndex++; SetupCurrentStage(); StartLevelTimer(); } }
-
-    // Этот метод теперь можно использовать для финальной стены в самом конце игры
     public void OpenWallAndFinish() { if (finalWall != null) finalWall.SetActive(false); }
 }
