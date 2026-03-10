@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections; // Нужно для работы корутин
 
 namespace EquationSystem
 {
@@ -17,9 +18,9 @@ namespace EquationSystem
         {
             public int stageIndex;
             [Header("Walls & Teleports")]
-            public GameObject enterWalls;        // Стены впереди
-            public GameObject closeBehindWalls;  // Стены сзади
-            public Transform teleportAfterStage; // Куда летим после победы
+            public GameObject enterWalls;
+            public GameObject closeBehindWalls;
+            public Transform teleportAfterStage;
 
             [Header("Triggers & Variants")]
             public ChoiceTrigger upperTrigger;
@@ -42,6 +43,17 @@ namespace EquationSystem
         [Header("Stages")]
         [SerializeField] private StageData[] stages;
 
+        // --- НОВЫЙ БЛОК: НАСТРОЙКИ ФИНАЛА ---
+        [Header("End Level Visuals")]
+        [Tooltip("Объекты, которые выключатся навсегда после победы")]
+        [SerializeField] private GameObject[] objectsToDeactivate;
+
+        [Tooltip("Объекты, которые включатся только на время")]
+        [SerializeField] private GameObject[] objectsToShowTemporarily;
+
+        [SerializeField] private float temporaryShowDuration = 3f;
+        // ------------------------------------
+
         private int currentStage = 0;
         private float timerValue;
         private bool isTimerActive = false;
@@ -49,7 +61,7 @@ namespace EquationSystem
         private void Start()
         {
             if (sliderContainer != null) sliderContainer.SetActive(false);
-            ResetLevel(); // Полный сброс при старте
+            ResetLevel();
         }
 
         private void Update()
@@ -70,7 +82,6 @@ namespace EquationSystem
             }
         }
 
-        // Запуск из триггера в начале
         public void StartLevelTimer()
         {
             currentStage = 0;
@@ -79,51 +90,67 @@ namespace EquationSystem
             ResetTimerForStage(0);
         }
 
-        // --- ЛОГИКА ВЫБОРА ---
-
         public void OnCorrectChoice(int stageIdx)
         {
             if (stageIdx != currentStage) return;
 
             StageData stage = stages[stageIdx];
 
-            // 1. Закрываем путь назад
             if (stage.closeBehindWalls != null) stage.closeBehindWalls.SetActive(true);
 
-            // 2. Телепортируем вперед
             if (stage.teleportAfterStage != null)
                 Teleport(stage.teleportAfterStage.position);
 
-            // 3. Переходим к следующему этапу
             currentStage++;
 
             if (currentStage >= stages.Length)
             {
-                // ПОБЕДА (Конец уровня)
+                // ПОБЕДА
                 StopLevelTimer();
+                StartCoroutine(EndLevelSequence()); // ЗАПУСК ФИНАЛЬНОЙ ЛОГИКИ
             }
             else
             {
-                // ОТКРЫВАЕМ СЛЕДУЮЩИЙ ЭТАП
                 if (stages[currentStage].enterWalls != null)
                     stages[currentStage].enterWalls.SetActive(false);
 
-                // СБРАСЫВАЕМ ТАЙМЕР ДЛЯ НОВОГО ЭТАПА
                 ResetTimerForStage(currentStage);
+            }
+        }
+
+        // Корутина для финала
+        private IEnumerator EndLevelSequence()
+        {
+            // 1. Выключаем объекты, которые не нужны в конце
+            foreach (GameObject obj in objectsToDeactivate)
+            {
+                if (obj != null) obj.SetActive(false);
+            }
+
+            // 2. Включаем временные объекты (например, надпись "Победа" или эффекты)
+            foreach (GameObject obj in objectsToShowTemporarily)
+            {
+                if (obj != null) obj.SetActive(true);
+            }
+
+            // 3. Ждем указанное время
+            yield return new WaitForSeconds(temporaryShowDuration);
+
+            // 4. Выключаем временные объекты обратно
+            foreach (GameObject obj in objectsToShowTemporarily)
+            {
+                if (obj != null) obj.SetActive(false);
             }
         }
 
         public void OnWrongChoice()
         {
-            // При ошибке: меняем пример, стопаем таймер и на старт
             SwitchVariant(currentStage);
             StopLevelTimer();
             Teleport(loseTeleportPoint.position);
-            ResetLevel(); // Сбрасываем все стены в исходное состояние
+            ResetLevel();
             Teleport(startPositionPoint.position);
         }
-
-        // --- ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ---
 
         private void SwitchVariant(int stageIdx)
         {
@@ -154,17 +181,20 @@ namespace EquationSystem
 
         private void ResetLevel()
         {
+            StopAllCoroutines(); // Останавливаем финал, если игрок проиграл в процессе
+
             currentStage = 0;
             StopLevelTimer();
 
+            // Сброс финала (возвращаем объекты в исходное состояние при рестарте)
+            foreach (GameObject obj in objectsToDeactivate) if (obj) obj.SetActive(true);
+            foreach (GameObject obj in objectsToShowTemporarily) if (obj) obj.SetActive(false);
+
             for (int i = 0; i < stages.Length; i++)
             {
-                // Стены входа: первого открываем, остальные закрываем
                 if (stages[i].enterWalls != null) stages[i].enterWalls.SetActive(i != 0);
-                // Стены сзади: все убираем
                 if (stages[i].closeBehindWalls != null) stages[i].closeBehindWalls.SetActive(false);
 
-                // Сброс вариантов примеров
                 if (stages[i].variants.Length > 0)
                 {
                     foreach (var v in stages[i].variants) v.visualObject.SetActive(false);
