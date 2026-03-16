@@ -32,7 +32,6 @@ public class ShopSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         }
     }
 
-    // Этот метод вызывается твоим UIManagerShop
     public void UpdateSlotUI()
     {
         if (item == null) return;
@@ -50,7 +49,6 @@ public class ShopSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         }
     }
 
-    // Этот метод вызывается твоим UIManagerShop (именно на него была ошибка)
     public void UpdateInventoryCount()
     {
         if (item != null && inventoryCountText != null && InventorySystem.Instance != null)
@@ -90,7 +88,6 @@ public class ShopSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         }
         else if (eventData.button == PointerEventData.InputButton.Right)
         {
-            // ПКМ в магазине тоже может принудительно вызвать тултип
             ItemTooltip.Instance.ShowTooltip(item, false, transform.position);
         }
     }
@@ -102,12 +99,13 @@ public class ShopSlot : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             bool success = InventorySystem.Instance.BuyItem(item);
             if (success)
             {
-                // Если покупка удалась, обновляем тултип и сам слот
-                UpdateSlotUI();
-                ItemTooltip.Instance.ShowTooltip(item, false, transform.position);
+                Merchant merchant = FindObjectOfType<Merchant>();
+                if (merchant != null)
+                {
+                    merchant.shopItems.Clear();
+                }
 
-                // Если у тебя есть UIManagerShop.Instance, можно вызвать обновление всего магазина:
-                // UIManagerShop.Instance.RefreshShopUI(); 
+                Destroy(gameObject);
             }
         }
     }

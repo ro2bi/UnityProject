@@ -255,14 +255,14 @@ public class VideoLessonPlayer : MonoBehaviour
 
         if (waitingPrepare)
         {
-            playPauseText.text = "Loading";
+            playPauseText.text = "Загрузка";
             return;
         }
 
         if (videoPlayer != null && videoPlayer.isPlaying)
-            playPauseText.text = "Pause";
+            playPauseText.text = "Пауза";
         else
-            playPauseText.text = "Play";
+            playPauseText.text = "Продовжити";
     }
 
     private void OnVolumeChanged(float value)
