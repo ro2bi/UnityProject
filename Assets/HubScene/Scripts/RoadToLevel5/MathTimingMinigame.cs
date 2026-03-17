@@ -32,7 +32,7 @@ public class MathTimingMinigame : MonoBehaviour
 
     [Header("Ёффекты ошибки")]
     public float shakeDuration = 0.3f; // ƒлительность тр€ски
-    public float shakeMagnitude = 10f;  // »нтенсивность (на сколько пикселей прыгает)
+    public float shakeMagnitude = 10f;  // »нтенсивность 
     private Vector3 originalPanelPos;
 
     [Header("Ёффекты успеха")]

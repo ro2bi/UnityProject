@@ -78,7 +78,7 @@ public class UIManagerNew : MonoBehaviour
 
     #region Death & Game Over Functions
     /// <summary>
-    /// 💀 ЭКРАН СМЕРТИ (есть чекпоинт) — показывает кнопку Retry
+    /// ЭКРАН СМЕРТИ (есть чекпоинт) — показывает кнопку Retry
     /// </summary>
     public void ShowDeathScreen()
     {
@@ -93,7 +93,7 @@ public class UIManagerNew : MonoBehaviour
     }
 
     /// <summary>
-    /// ☠️ GAME OVER (нет чекпоинта) — показывает экран Game Over
+    /// GAME OVER (нет чекпоинта) — показывает экран Game Over
     /// </summary>
     public void GameOver()
     {

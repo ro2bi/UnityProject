@@ -19,14 +19,14 @@ public class PlayerMovementNew : MonoBehaviour
 
     [Header("Pickup System (Items)")]
     public Transform holdPoint;
-    public float holdPointDistance = 0.6f; // Дистанция для предметов
+    public float holdPointDistance = 0.6f; 
     public float pickupRange = 0.4f;
     private WeightObject carriedItem;
 
     [Header("Mine System (Only Mines)")]
-    public Transform minePointer;         // Новый объект-указатель
-    public float minePointerDistance = 1.1f; // Дистанция указателя (обычно дальше рук)
-    public GameObject minePointerVisual;  // Ссылка на спрайт указателя (чтобы скрывать/показывать)
+    public Transform minePointer;       
+    public float minePointerDistance = 1.1f; 
+    public GameObject minePointerVisual;  
 
     [Header("Ground Check")]
     public Transform groundCheck;
@@ -170,7 +170,6 @@ public class PlayerMovementNew : MonoBehaviour
 
     private void HandleInteraction()
     {
-        // 1. Сначала проверяем MinePointer (флаги и интерактивности вроде рычагов/стен)
         Collider2D[] minePointerHits = Physics2D.OverlapCircleAll(minePointer.position, 0.4f);
 
         foreach (var hit in minePointerHits)
@@ -194,7 +193,6 @@ public class PlayerMovementNew : MonoBehaviour
 
         if (carriedItem == null)
         {
-            // ЛОГИКА ПОДНЯТИЯ (оставляем как есть или чуть уточняем)
             foreach (var hit in itemHits)
             {
                 EquationSlot slot = hit.GetComponent<EquationSlot>();
@@ -205,7 +203,6 @@ public class PlayerMovementNew : MonoBehaviour
         }
         else
         {
-            // УЛУЧШЕННАЯ ЛОГИКА ВСТАВКИ
             EquationSlot bestSlot = null;
             float minDistance = float.MaxValue;
 
@@ -213,13 +210,10 @@ public class PlayerMovementNew : MonoBehaviour
             {
                 EquationSlot slot = hit.GetComponent<EquationSlot>();
 
-                // Если это слот и он не занят
                 if (slot != null && !slot.isOccupied)
                 {
-                    // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: проверяем, подходит ли тип ПРЕЖДЕ ЧЕМ выбирать слот
                     if (slot.CanAccept(carriedItem))
                     {
-                        // Если нашли подходящий, запоминаем ближайший из подходящих
                         float dist = Vector2.Distance(holdPoint.position, hit.transform.position);
                         if (dist < minDistance)
                         {
@@ -230,14 +224,12 @@ public class PlayerMovementNew : MonoBehaviour
                 }
             }
 
-            // Если нашли хоть один ПОДХОДЯЩИЙ слот в радиусе — вставляем в него
             if (bestSlot != null)
             {
                 PlaceIntoSlot(bestSlot);
                 return;
             }
 
-            // Если подходящих слотов рядом нет, а кнопка нажата — просто бросаем на землю
             Drop();
         }
     }
@@ -249,7 +241,6 @@ public class PlayerMovementNew : MonoBehaviour
         item.transform.SetParent(holdPoint);
         item.transform.localPosition = Vector3.zero;
 
-        // ИЗМЕНЕНИЕ: Меняем слой только если он НЕ заблокирован
         if (!item.lockSortingOrder)
         {
             SpriteRenderer itemSR = item.GetComponent<SpriteRenderer>();
@@ -277,7 +268,6 @@ public class PlayerMovementNew : MonoBehaviour
 
         item.transform.position += (Vector3)lastMoveDirection * 0.2f;
 
-        // ИЗМЕНЕНИЕ: Возвращаем стандартный слой только если он НЕ заблокирован
         if (!item.lockSortingOrder)
         {
             SpriteRenderer itemSR = item.GetComponent<SpriteRenderer>();
@@ -294,7 +284,6 @@ public class PlayerMovementNew : MonoBehaviour
         {
             holdPoint.localPosition = (Vector3)lastMoveDirection * holdPointDistance;
 
-            // ИЗМЕНЕНИЕ: Глубинная сортировка при ходьбе (за спину / перед собой)
             if (carriedItem != null && !carriedItem.lockSortingOrder)
             {
                 SpriteRenderer itemSR = carriedItem.GetComponent<SpriteRenderer>();
@@ -307,7 +296,6 @@ public class PlayerMovementNew : MonoBehaviour
             minePointer.localPosition = (Vector3)lastMoveDirection * minePointerDistance;
     }
 
-    // Вспомогательные методы (Jump, Fall и т.д.) - без изменений
     IEnumerator JumpRoutine()
     {
         isJumping = true;
@@ -399,7 +387,6 @@ public class PlayerMovementNew : MonoBehaviour
     {
         if (carriedItem == null) return;
 
-        // ПРОВЕРКА: Подходит ли наш предмет этому слоту?
         if (slot.CanAccept(carriedItem))
         {
             WeightObject itemToPlace = carriedItem;
@@ -413,7 +400,6 @@ public class PlayerMovementNew : MonoBehaviour
         }
         else
         {
-            // Если тип не совпадает — просто ничего не делаем (или можно проиграть звук ошибки)
             Debug.LogWarning($"Этот слот принимает только {slot.acceptedType}, а вы пытаетесь вставить {carriedItem.type}!");
         }
     }
@@ -430,7 +416,6 @@ public class PlayerMovementNew : MonoBehaviour
     {
         if (carriedItem != null)
         {
-            // Просто вызываем наш существующий метод Drop
             Drop();
         }
     }

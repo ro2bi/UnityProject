@@ -92,7 +92,7 @@ public class HelpWindowController : MonoBehaviour
         StringBuilder sb = new StringBuilder();
         if (!string.IsNullOrEmpty(helpTextContent))
         {
-            sb.AppendLine("<size=120%><color=#FFCC00>INFO:</color></size>");
+            sb.AppendLine("<size=120%><color=#FFCC00></color></size>");
             sb.AppendLine(helpTextContent);
             sb.AppendLine();
         }
@@ -130,7 +130,7 @@ public class HelpWindowController : MonoBehaviour
 
         if (startupHintTextDisplay != null)
         {
-            startupHintTextDisplay.text = $"{helpKey} to help";
+            startupHintTextDisplay.text = $"{helpKey} щоб подивитись управління";
         }
 
         startupHintObject.SetActive(true);

@@ -15,7 +15,7 @@ MonoBehaviour:
   itemName: Stick
   icon: {fileID: 21300000, guid: d97c45f6a7915434bbe2affcd7b2d8c0, type: 3}
   description: You can upgrade it
-  buyPrice: 150
+  buyPrice: 100
   sellPrice: 10
   itemType: 3
   equipmentSlots: 0
