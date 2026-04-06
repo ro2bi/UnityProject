@@ -25,7 +25,6 @@ public class UIManagerNew : MonoBehaviour
 
     private void Awake()
     {
-        // Настройка Singleton
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -40,21 +39,17 @@ public class UIManagerNew : MonoBehaviour
         gameOverScreen.SetActive(false);
         pauseScreen.SetActive(false);
 
-        // Скрываем экран смерти
         if (deathScreen != null)
             deathScreen.SetActive(false);
 
-        // Скрываем текст взаимодействия при старте
         if (interactionPromptText != null)
         {
             interactionPromptText.gameObject.SetActive(false);
         }
     }
 
-    #region Interaction Prompt Functions
-    /// <summary>
-    /// Показать подсказку взаимодействия с заданным текстом.
-    /// </summary>
+    
+    
     public static void ShowInteractionPrompt(string textToShow)
     {
         if (Instance != null && Instance.interactionPromptText != null)
@@ -64,9 +59,7 @@ public class UIManagerNew : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Скрыть подсказку взаимодействия.
-    /// </summary>
+    
     public static void HideInteractionPrompt()
     {
         if (Instance != null && Instance.interactionPromptText != null)
@@ -74,27 +67,19 @@ public class UIManagerNew : MonoBehaviour
             Instance.interactionPromptText.gameObject.SetActive(false);
         }
     }
-    #endregion
 
-    #region Death & Game Over Functions
-    /// <summary>
-    /// ЭКРАН СМЕРТИ (есть чекпоинт) — показывает кнопку Retry
-    /// </summary>
     public void ShowDeathScreen()
     {
         if (deathScreen != null)
         {
             deathScreen.SetActive(true);
-            Time.timeScale = 0f; // Ставим игру на паузу
+            Time.timeScale = 0f; 
 
             if (deathSound != null)
                 SoundManager.instance?.PlaySound(deathSound);
         }
     }
 
-    /// <summary>
-    /// GAME OVER (нет чекпоинта) — показывает экран Game Over
-    /// </summary>
     public void GameOver()
     {
         gameOverScreen.SetActive(true);
@@ -103,56 +88,40 @@ public class UIManagerNew : MonoBehaviour
         if (gameOverSound != null)
             SoundManager.instance?.PlaySound(gameOverSound);
     }
-    #endregion
 
-    #region Scene Management
     private void Update()
     {
         if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.TOMENU)))
         {
-            // Проверяем, открыт ли инвентарь/магазин ИЛИ ESC уже был обработан в этом кадре
             if (UIManagerShop.IsWindowOpen || UIManagerShop.EscPressedThisFrame)
             {
-                // Если открыт или ESC уже обработан - не делаем ничего
                 return;
             }
 
-            // If pause screen already active unpause and viceversa
             PauseGame(!pauseScreen.activeInHierarchy);
         }
     }
 
-    /// <summary>
-    /// Restart level
-    /// </summary>
     public void Retry()
     {
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
-    /// <summary>
-    /// Activate main menu
-    /// </summary>
     public void MainMenu()
     {
         Time.timeScale = 1f;
         SceneManager.LoadScene("MenuScene");
     }
 
-    /// <summary>
-    /// Quit game/exit play mode if in Editor
-    /// </summary>
     public void Quit()
     {
-        Application.Quit(); // Quits the game (only works in build)
+        Application.Quit(); 
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false; // Exits play mode
 #endif
     }
-    #endregion
 
-    #region Pause
     public void PauseGame(bool status)
     {
         // If status == true pause | if status == false unpause
@@ -165,5 +134,4 @@ public class UIManagerNew : MonoBehaviour
         else
             Time.timeScale = 1;
     }
-    #endregion
 }
