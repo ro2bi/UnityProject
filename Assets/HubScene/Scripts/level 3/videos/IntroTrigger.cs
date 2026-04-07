@@ -2,20 +2,17 @@ using UnityEngine;
 
 public class IntroTrigger : MonoBehaviour
 {
-    // Сюда в инспекторе перетащи LevelData первого уровня
     public LevelData levelData;
     private bool hasPlayed = false;
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // Проверяем игрока и что видео еще не играло
         if (other.CompareTag("Player") && !hasPlayed)
         {
             if (levelData != null)
             {
                 hasPlayed = true;
 
-                // Находим CinematicManager и передаем ему данные нашего уровня
                 CinematicManager cinem = FindObjectOfType<CinematicManager>();
                 if (cinem != null)
                 {
@@ -24,7 +21,7 @@ public class IntroTrigger : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning("IntroTrigger: Не назначен LevelData в инспекторе!");
+                Debug.LogWarning("IntroTrigger: пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ LevelData пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ!");
             }
         }
     }

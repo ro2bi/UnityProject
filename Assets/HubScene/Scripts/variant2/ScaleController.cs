@@ -6,7 +6,7 @@ public class ScaleController : MonoBehaviour
 {
     public TMPro.TextMeshPro weightText;
     public ButtonController button;
-    public ButtonTrigger buttonTrigger; // ← ДОБАВЬ ЭТО
+    public ButtonTrigger buttonTrigger;
 
     private WeightObject currentObj;
     public float gravityValue = 10f;
@@ -33,7 +33,6 @@ public class ScaleController : MonoBehaviour
     {
         gravityValue = newG;
 
-        // Устанавливаем g для кнопки тоже
         if (buttonTrigger != null)
             buttonTrigger.SetGravity(newG);
 

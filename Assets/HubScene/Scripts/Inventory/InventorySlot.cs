@@ -13,7 +13,7 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IPointerEnterH
 
     private ItemData currentItem;
     private Coroutine delayCoroutine;
-    private GameObject dragIcon; // Временная иконка при перетаскивании
+    private GameObject dragIcon;
     private Canvas canvas;
 
     public bool IsEmpty => currentItem == null;
@@ -28,7 +28,7 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IPointerEnterH
         if (currentItem != null)
         {
             InventorySystem.Instance.EquipItem(currentItem);
-            ItemTooltip.Instance.HideTooltip(); // Скрываем после нажатия
+            ItemTooltip.Instance.HideTooltip();
         }
     }
 
@@ -52,23 +52,20 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IPointerEnterH
         if (emptySlotIndicator) emptySlotIndicator.SetActive(true);
     }
 
-    // --- ЛОГИКА ПЕРЕТАСКИВАНИЯ (DRAG & DROP) ---
-
     public void OnBeginDrag(PointerEventData eventData)
     {
         if (currentItem == null) return;
 
-        // Создаем визуальную копию иконки для перетаскивания
         dragIcon = new GameObject("DragIcon");
         dragIcon.transform.SetParent(canvas.transform);
         dragIcon.transform.SetAsLastSibling();
 
         Image img = dragIcon.AddComponent<Image>();
         img.sprite = currentItem.icon;
-        img.raycastTarget = false; // Чтобы иконка не мешала определять, над чем мышка
+        img.raycastTarget = false;
         dragIcon.GetComponent<RectTransform>().sizeDelta = new Vector2(50, 50);
 
-        itemIcon.color = new Color(1, 1, 1, 0.5f); // Делаем иконку в слоте прозрачной
+        itemIcon.color = new Color(1, 1, 1, 0.5f);
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -82,8 +79,6 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IPointerEnterH
         if (dragIcon != null) Destroy(dragIcon);
         itemIcon.color = Color.white;
 
-        // ПРОВЕРКА: Вынесли ли мы предмет за пределы UI?
-        // Если мышка НЕ над объектом UI, значит мы в мире
         if (!EventSystem.current.IsPointerOverGameObject())
         {
             InventorySystem.Instance.DropItem(currentItem);
@@ -91,7 +86,6 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IPointerEnterH
         }
     }
 
-    // --- ОСТАЛЬНАЯ ЛОГИКА (ТУЛТИПЫ И КЛИКИ) ---
 
     public void OnPointerEnter(PointerEventData eventData)
     {
@@ -103,7 +97,6 @@ public class InventorySlot : MonoBehaviour, IPointerClickHandler, IPointerEnterH
     {
         if (delayCoroutine != null) StopCoroutine(delayCoroutine);
 
-        // Даем небольшую задержку перед скрытием, чтобы успеть перевести мышку
         Invoke("CheckHide", 0.1f);
     }
 

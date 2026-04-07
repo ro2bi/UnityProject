@@ -29,13 +29,11 @@ public class ShopSystem : MonoBehaviour
 
     private void Start()
     {
-        // Автоматически загрузить все предметы из папки Resources/Items
         if (autoLoadFromResources)
         {
             LoadAllItems();
         }
 
-        // Проверка на пустой список
         if (allItems.Count == 0)
         {
             Debug.LogWarning("⚠ShopSystem: Нет предметов для продажи! Добавьте предметы в список или включите autoLoadFromResources.");
@@ -44,7 +42,6 @@ public class ShopSystem : MonoBehaviour
 
     private void LoadAllItems()
     {
-        // Загружаем все ItemData из Resources/Items
         ItemData[] items = Resources.LoadAll<ItemData>("Items");
 
         if (items.Length == 0)
@@ -53,14 +50,12 @@ public class ShopSystem : MonoBehaviour
             return;
         }
 
-        // Очищаем старый список, если загружаем заново
         allItems.Clear();
         allItems.AddRange(items);
 
         Debug.Log($"Загружено {allItems.Count} предметов в магазин");
     }
 
-    // Фильтр предметов по типу (для категорий в UI)
     public List<ItemData> GetItemsByType(ItemType type)
     {
         List<ItemData> result = new List<ItemData>();
@@ -76,13 +71,11 @@ public class ShopSystem : MonoBehaviour
         return result;
     }
 
-    // Получить все предметы одежды
     public List<ItemData> GetClothingItems()
     {
         return GetItemsByType(ItemType.Clothing);
     }
 
-    // Получить всю еду
     public List<ItemData> GetFoodItems()
     {
         return GetItemsByType(ItemType.Food);

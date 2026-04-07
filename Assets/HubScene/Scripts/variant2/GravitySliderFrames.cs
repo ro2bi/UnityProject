@@ -4,10 +4,10 @@ using UnityEngine;
 
 public class GravitySliderFrames : MonoBehaviour
 {
-    public GameObject[] frames; // 9 кадров (g=2..18)
+    public GameObject[] frames;
     public ScaleController scale;
 
-    int currentIndex = 4; // например g=10 по умолчанию
+    int currentIndex = 4;
 
     public float[] gValues = { 2, 4, 6, 8, 10, 12, 14, 16, 18 };
 

@@ -20,7 +20,6 @@ public class LevelManager : MonoBehaviour
         if (levelPassed) return;
         levelPassed = true;
 
-        // ✅ Стіна вимикається тут
         closingWall.SetActive(false);
 
         StartCoroutine(LevelEndRoutine(nextProfessorPos));
@@ -29,9 +28,6 @@ public class LevelManager : MonoBehaviour
     private IEnumerator LevelEndRoutine(Vector3 pos)
     {
         yield return professor.DisappearTeleportAppear(pos);
-
-        // ❌ НЕ активуємо стіну тут! Вона активується через LevelExitTrigger
-        // closingWall.SetActive(true); <- прибрано
 
         levelPassed = false;
     }

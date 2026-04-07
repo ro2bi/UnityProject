@@ -10,16 +10,16 @@ public class HelpWindowController : MonoBehaviour
     public GameObject helpPanel;
     public TextMeshProUGUI textDisplay;
 
-    [Header("Настройки Иконок")]
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ")]
     public Image buttonIcon;     
     public Sprite iconGame;       
     public Sprite iconMenuOpen;     
 
-    [Header("Стартова підказка")]
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
     public GameObject startupHintObject; 
     public float hintDuration = 5f;
 
-    [Header("Дополнительная информация")]
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
     [TextArea(5, 15)]
     public string helpTextContent;
 
@@ -80,7 +80,7 @@ public class HelpWindowController : MonoBehaviour
     public void CloseHelp()
     {
         helpPanel.SetActive(false);
-        UpdateIconButton(false); // Возвращаем иконку игры
+        UpdateIconButton(false);
         Time.timeScale = 1f;
         MineGridManager2D.IsUIOpen = false;
     }
@@ -96,7 +96,7 @@ public class HelpWindowController : MonoBehaviour
             sb.AppendLine(helpTextContent);
             sb.AppendLine();
         }
-        sb.AppendLine("<size=120%><color=#FFCC00>Управління:</color></size>");
+        sb.AppendLine("<size=120%><color=#FFCC00>пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ:</color></size>");
         var allBinds = KeybindManager.GetAllKeybinds();
         foreach (var bind in allBinds)
         {
@@ -109,16 +109,16 @@ public class HelpWindowController : MonoBehaviour
     {
         switch (actionKey)
         {
-            case KeybindManager.MOVE_FORWARD: return "Вперед";
-            case KeybindManager.MOVE_BACKWARD: return "Назад";
-            case KeybindManager.MOVE_LEFT: return "Вліво";
-            case KeybindManager.MOVE_RIGHT: return "Вправо";
-            case KeybindManager.INTERACT: return "Взаємодія";
-            case KeybindManager.INVENTORY: return "Інвентар";
-            case KeybindManager.DROP: return "Викинуть предмет";
-            case KeybindManager.JUMP: return "Стрибок";
-            case KeybindManager.HELPWINDOW: return "Відкрити допомогу";
-            case KeybindManager.TOMENU: return "Меню";
+            case KeybindManager.MOVE_FORWARD: return "пїЅпїЅпїЅпїЅпїЅпїЅ";
+            case KeybindManager.MOVE_BACKWARD: return "пїЅпїЅпїЅпїЅпїЅ";
+            case KeybindManager.MOVE_LEFT: return "пїЅпїЅпїЅпїЅ";
+            case KeybindManager.MOVE_RIGHT: return "пїЅпїЅпїЅпїЅпїЅпїЅ";
+            case KeybindManager.INTERACT: return "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ";
+            case KeybindManager.INVENTORY: return "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ";
+            case KeybindManager.DROP: return "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ";
+            case KeybindManager.JUMP: return "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ";
+            case KeybindManager.HELPWINDOW: return "ВіпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ";
+            case KeybindManager.TOMENU: return "пїЅпїЅпїЅпїЅ";
             default: return actionKey;
         }
     }
@@ -130,7 +130,7 @@ public class HelpWindowController : MonoBehaviour
 
         if (startupHintTextDisplay != null)
         {
-            startupHintTextDisplay.text = $"{helpKey} щоб подивитись управління";
+            startupHintTextDisplay.text = $"{helpKey} пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ";
         }
 
         startupHintObject.SetActive(true);

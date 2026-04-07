@@ -6,7 +6,7 @@ using TMPro;
 public class CinematicManager : MonoBehaviour
 {
     public VideoPlayer videoPlayer;
-    public GameObject videoOverlay; // Тот самый черный фон для видео
+    public GameObject videoOverlay;
 
     [Header("Win Panel UI")]
     public GameObject winScreen;
@@ -16,7 +16,6 @@ public class CinematicManager : MonoBehaviour
 
     public void PlayIntro(LevelData data)
     {
-        // Если видео нет, просто ничего не делаем
         if (data == null || data.introVideo == null)
         {
             Debug.Log("Интро видео не назначено, пропускаем.");
@@ -30,7 +29,6 @@ public class CinematicManager : MonoBehaviour
         videoOverlay.SetActive(true);
         videoPlayer.clip = clip;
         videoPlayer.Play();
-        // Когда видео закончится, выключить оверлей
         videoPlayer.loopPointReached += (vp) => {
             videoOverlay.SetActive(false);
         };
@@ -60,7 +58,6 @@ public class CinematicManager : MonoBehaviour
         {
             winScreen.SetActive(true);
 
-            // Выключаем кнопку QUIT, если это последний уровень
             if (quitButton != null)
             {
                 quitButton.SetActive(!isLastLevel);

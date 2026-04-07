@@ -122,7 +122,6 @@ public class PlayerMovementNew : MonoBehaviour
             return;
         }
 
-        // Обновляем положение обеих точек (рук и указателя мин)
         UpdatePointers();
 
         if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.INTERACT)))

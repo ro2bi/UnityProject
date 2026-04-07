@@ -3,46 +3,43 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "NewItem", menuName = "Inventory/Item")]
 public class ItemData : ScriptableObject
 {
-    [Header("Основная информация")]
-    public string itemName = "Новый предмет";
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
+    public string itemName = "пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ";
     public Sprite icon;
     [TextArea(3, 5)]
-    public string description = "Описание предмета";
+    public string description = "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ";
 
-    [Header("Экономика")]
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
     public int buyPrice = 10;
     public int sellPrice = 5;
 
-    [Header("Тип предмета")]
+    [Header("пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
     public ItemType itemType;
 
-    [Header("Для одежды")]
+    [Header("пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ")]
     public EquipmentSlot equipmentSlots;
     public Sprite headSprite;
     public Sprite bodySprite;
     public Sprite legsSprite;
 
-    [Header("Для еды (опционально)")]
+    [Header("пїЅпїЅпїЅ пїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)")]
     public int healthRestore = 0;
     public int energyRestore = 0;
 
-    [Header("Эффект при использовании (опционально)")]
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ)")]
     public ItemUseEffect useEffect = ItemUseEffect.None;
-    // для прыжка
     public float jumpHeightBonus;
     public float jumpDurationBonus;
     public float buffDuration = 0f;
 
-    // для скорости
     public float speedBonus;
 
-    // общее время эффекта
     public float effectDuration = 3f;
 
     [Header("Use settings")]
     public bool isUsable = false;
 
-    [Header("Визуал в мире")]
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ")]
     public float worldScale = 1.0f;
     public Sprite equipSprite;
 }
@@ -63,7 +60,7 @@ public enum EquipmentSlot
     Head = 1,
     Body = 2,
     Legs = 4,
-    BodyAndLegs = Body | Legs  // Комбинезон
+    BodyAndLegs = Body | Legs
 }
 
 public enum ItemUseEffect

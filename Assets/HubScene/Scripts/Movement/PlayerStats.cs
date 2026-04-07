@@ -27,15 +27,11 @@ public class PlayerStats : MonoBehaviour
 
         movement = GetComponent<PlayerMovementNew>();
 
-        // Сохраняем базовые значения
         baseSpeed = movement.speed;
         baseJumpHeight = movement.defaultJumpHeight;
         baseJumpDuration = movement.defaultJumpDuration;
     }
 
-    // =========================
-    // SPEED BOOST
-    // =========================
     public void ApplySpeedBoost(float bonus, float duration)
     {
         if (speedRoutine != null)
@@ -51,9 +47,6 @@ public class PlayerStats : MonoBehaviour
         movement.speed = baseSpeed;
     }
 
-    // =========================
-    // JUMP BOOST
-    // =========================
     public void ApplyJumpBoost(float heightBonus, float durationBonus, float duration)
     {
         if (jumpRoutine != null)

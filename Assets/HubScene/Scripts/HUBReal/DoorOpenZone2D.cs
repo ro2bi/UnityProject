@@ -2,11 +2,10 @@ using UnityEngine;
 
 public class DoorOpenZone2D : MonoBehaviour
 {
-    public DoorZoneLockController door; // Сюди перетягни об'єкт дверей з DoorZoneLockController
+    public DoorZoneLockController door;
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // Спрацьовує, коли гравець заходить у зону
         if (!other.CompareTag("Player")) return;
 
         if (door != null)
@@ -15,7 +14,6 @@ public class DoorOpenZone2D : MonoBehaviour
 
     private void OnTriggerExit2D(Collider2D other)
     {
-        // Спрацьовує, коли гравець виходить із зони
         if (!other.CompareTag("Player")) return;
 
         if (door != null)

@@ -11,7 +11,7 @@ public class MineCell2D : MonoBehaviour
     public SpriteRenderer sr;
     public TextMeshPro labelText;
     public GameObject flagVisual;
-    public GameObject mineVisual; // Объект мины, который мы включаем
+    public GameObject mineVisual;
 
     private MineGridManager2D manager;
 
@@ -28,7 +28,6 @@ public class MineCell2D : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // Проверка: наступил игрок?
         if (other.CompareTag("Player") && !isRevealed && !isFlagged)
         {
             Reveal();
@@ -42,22 +41,20 @@ public class MineCell2D : MonoBehaviour
         if (isMine)
         {
             isRevealed = true;
-            if (mineVisual != null) mineVisual.SetActive(true); // Показываем мину
-            if (sr != null) sr.color = Color.red; // Красим клетку для верности
+            if (mineVisual != null) mineVisual.SetActive(true);
+            if (sr != null) sr.color = Color.red;
             manager.TriggerGameOver();
             return;
         }
 
-        // Если это клетка с цифрой и мы еще не решили пример
         if (neighboringMines > 0 && !isCorrectInput)
         {
             manager.OpenMathPuzzle(this);
         }
         else
         {
-            // Открываем пустую клетку или клетку с решенным примером
             isRevealed = true;
-            if (sr != null) sr.color = new Color(0.7f, 0.7f, 0.7f); // Серая открытая клетка
+            if (sr != null) sr.color = new Color(0.7f, 0.7f, 0.7f);
 
             if (neighboringMines > 0)
             {

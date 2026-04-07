@@ -1,22 +1,14 @@
 using UnityEngine;
 
-// ���� ������ ����� ������ �� �����, �������, ������ � �.�.
 public class InteractableObject : MonoBehaviour
 {
-    // �����, ������� ����� ������������. 
-    // ����������� � ���������� ��� ������� �������.
     [Header("����� ���������")]
     [SerializeField] private string interactionText = "Press E to Interact";
 
-    // �����-�� ������, ������� ��������� �������� �������� (�������� �����, � �.�.)
-    //private IActionComponent action;
-
-    // ��� �������� ��� KeybindManager
     private readonly string interactKeyName = KeybindManager.INTERACT;
 
     private bool playerInside = false;
 
-    // � ������ �������� ��������� �������� �����
     private void Awake()
     {
         // action = GetComponent<IActionComponent>(); 
@@ -24,7 +16,6 @@ public class InteractableObject : MonoBehaviour
 
     private void Update()
     {
-        // Если объект — профессор и финальный сегмент, блокируем интеракцию
         ProfessorWalker professor = GetComponent<ProfessorWalker>();
         if (professor != null && professor.finalSegmentOnlyByTrigger)
             return;
@@ -38,14 +29,12 @@ public class InteractableObject : MonoBehaviour
     private void ExecuteAction()
     {
         Debug.Log($"������ {gameObject.name} �����������!");
-        // action?.Execute();
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (!other.CompareTag("Player")) return;
 
-        // Если объект — профессор и финальный сегмент, не показываем подсказку
         ProfessorWalker professor = GetComponent<ProfessorWalker>();
         if (professor != null && professor.finalSegmentOnlyByTrigger)
             return;

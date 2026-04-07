@@ -28,9 +28,9 @@ public class InventorySystem : MonoBehaviour
     public List<ItemData> Items => items;
 
     [Header("Экипировка")]
-    public SpriteRenderer handRenderer; // Создай на игроке дочерний объект Hand и перетащи сюда
+    public SpriteRenderer handRenderer;
 
-    private ItemData equippedTool; // Храним текущий инструмент (кирку)
+    private ItemData equippedTool;
 
 
     public bool HasItem(string itemName)
@@ -92,19 +92,14 @@ public class InventorySystem : MonoBehaviour
         }
     }
 
-    // Метод для полного выброса предмета из рук на землю
     public void DropEquippedTool()
     {
         if (equippedTool == null) return;
 
-        // Сохраняем ссылку на предмет перед тем как очистить руку
         ItemData toolToDrop = equippedTool;
 
-        // 1. Убираем визуал из рук
         UnequipTool();
 
-        // 2. Используем твой существующий метод DropItem
-        // Он создаст WorldItem в мире и удалит предмет из списка предметов (items)
         DropItem(toolToDrop);
 
         Debug.Log($"Предмет {toolToDrop.itemName} выброшен из рук на землю.");
@@ -116,14 +111,11 @@ public class InventorySystem : MonoBehaviour
 
         Debug.Log($"Улучшаем {equippedTool.itemName} -> {upgradedVersion.itemName}");
 
-        // 1. Находим и удаляем старую палку из списка предметов
         ItemData oldTool = equippedTool;
         RemoveItem(oldTool);
 
-        // 2. Добавляем новую палку в инвентарь
         AddItem(upgradedVersion);
 
-        // 3. Сразу экипируем её в руки
         EquipItem(upgradedVersion);
     }
 
@@ -181,10 +173,8 @@ public class InventorySystem : MonoBehaviour
 
         GameObject player = GameObject.FindGameObjectWithTag("Player");
 
-        // Если игрок не найден, спавним в центре, если найден - чуть сбоку
         Vector3 spawnPos = player ? player.transform.position + new Vector3(1f, 0, 0) : Vector3.zero;
 
-        // ПРИНУДИТЕЛЬНО ставим Z как у игрока, чтобы предмет был виден
         if (player) spawnPos.z = player.transform.position.z;
 
         if (worldItemPrefab != null)
@@ -222,7 +212,6 @@ public class InventorySystem : MonoBehaviour
     {
         if (item == null || !item.isUsable) return;
         Debug.Log("Использован: " + item.itemName);
-        // Тут твоя логика баффов из старого скрипта...
         RemoveItem(item);
     }
 

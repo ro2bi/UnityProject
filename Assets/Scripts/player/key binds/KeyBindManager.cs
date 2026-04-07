@@ -8,7 +8,6 @@ public static class KeybindManager
     private static Dictionary<string, KeyCode> keybinds = new Dictionary<string, KeyCode>();
     public static event Action OnKeybindsChanged;
 
-    // КОНСТАНТИ ДІЙ
     public const string JUMP = "Jump";
     public const string MOVE_FORWARD = "MoveForward";
     public const string MOVE_BACKWARD = "MoveBackward";
@@ -39,7 +38,6 @@ public static class KeybindManager
         if (PlayerPrefs.HasKey(KeybindsSaveKey))
         {
             LoadKeybinds();
-            // ВАЖЛИВО: Перевіряємо, чи всі дії присутні після завантаження
             ValidateKeybinds();
         }
         else
@@ -49,7 +47,6 @@ public static class KeybindManager
         }
     }
 
-    // НОВИЙ МЕТОД: Перевіряє і додає відсутні дії
     private static void ValidateKeybinds()
     {
         bool needsSave = false;
@@ -160,7 +157,6 @@ public static class KeybindManager
 
     public static Dictionary<string, KeyCode> GetAllKeybinds()
     {
-        // Возвращаем копию словаря, чтобы UI мог его перебрать
         return new Dictionary<string, KeyCode>(keybinds);
     }
 }

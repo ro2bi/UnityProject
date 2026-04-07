@@ -24,7 +24,6 @@ public class rangedEnemy : MonoBehaviour
     [Header("Fireball Sound")]
     [SerializeField] private AudioClip FireballSound;
 
-    //References
     private Animator anim;
     private EnemyPatrol enemyPatrol;
 
@@ -38,7 +37,6 @@ public class rangedEnemy : MonoBehaviour
     {
         cooldownTimer += Time.deltaTime;
 
-        //Attack only when player in sight?
         if (PlayerInSight())
         {
             if (cooldownTimer >= attackCooldown)
@@ -74,7 +72,7 @@ public class rangedEnemy : MonoBehaviour
         return 0;
     }
 
-    private Health playerHealth; // Добавь это в поля скрипта (если ещё нет)
+    private Health playerHealth;
 
     private bool PlayerInSight()
     {

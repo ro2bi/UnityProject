@@ -5,8 +5,8 @@ using System.Collections.Generic;
 
 public class GravityButtonG : MonoBehaviour
 {
-    public bool increase;                     // true = G+, false = GЦ
-    public GravitySliderFrames slider;        // ссылка на слайдер
+    public bool increase;
+    public GravitySliderFrames slider;
     public Sprite normalSprite;
     public Sprite pressedSprite;
 

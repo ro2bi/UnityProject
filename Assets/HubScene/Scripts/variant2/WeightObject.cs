@@ -16,7 +16,6 @@ public class WeightObject : MonoBehaviour
     public bool revealOnlyInSlot = false;
     public GameObject visualContent;
 
-    // НОВОЕ: Этот флаг запомнит, что число уже видели
     private bool hasBeenRevealed = false;
 
     [HideInInspector] public Vector3 startPosition;
@@ -37,15 +36,11 @@ public class WeightObject : MonoBehaviour
 
         if (isVisible)
         {
-            // Как только число проявилось (на весах или в слоте), 
-            // мы ставим флаг в true навсегда.
             hasBeenRevealed = true;
             if (visualContent != null) visualContent.SetActive(true);
         }
         else
         {
-            // Пытаемся скрыть число ТОЛЬКО если оно еще ни разу не было проявлено.
-            // Если hasBeenRevealed уже true, число останется видимым.
             if (!hasBeenRevealed && visualContent != null)
             {
                 visualContent.SetActive(false);

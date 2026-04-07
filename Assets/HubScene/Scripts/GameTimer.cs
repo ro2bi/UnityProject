@@ -7,7 +7,6 @@ public class GameTimer : MonoBehaviour
 
     void Start()
     {
-        // Обнуляем время при старте игры
         timeSpent = 0;
         timerRunning = true;
     }
@@ -22,7 +21,6 @@ public class GameTimer : MonoBehaviour
 
     public static void StopTimer()
     {
-        // Метод для остановки (вызовем при входе в портал)
         PlayerPrefs.SetFloat("FinalTime", timeSpent);
         PlayerPrefs.Save();
     }

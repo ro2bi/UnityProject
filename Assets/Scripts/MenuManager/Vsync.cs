@@ -10,7 +10,7 @@ public class Vsync : MonoBehaviour
         
         if (isVSyncEnabled)
         {
-            Application.targetFrameRate = -1; // -1 означает, что FPS не ограничен движком
+            Application.targetFrameRate = -1;
         }
     }
 }

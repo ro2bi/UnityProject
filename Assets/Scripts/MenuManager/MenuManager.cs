@@ -9,16 +9,15 @@ using System.Linq;
 public class MenuManager : MonoBehaviour
 {
     [SerializeField] private GameObject pauseScreen;
-    [SerializeField] private GameObject keybindsScreen;
+    [SerializeField] private GameObject keybindsScreen;
     [SerializeField] private GameObject mainGameCanvas;
 
-    // --- Поля для Разрешения Экрана ---
-    [Header("Настройки Разрешения")]
-    [SerializeField] private TMP_Dropdown resolutionDropdown; // Компонент Dropdown для выбора разрешения
-    private Resolution[] resolutions; // Массив доступных разрешений
-    private bool isFullScreen = true;
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
+    [SerializeField] private TMP_Dropdown resolutionDropdown;
+    private Resolution[] resolutions;
+    private bool isFullScreen = true;
 
-    [Header("Переключатель Всунк")]
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ")]
     public Image checkmarkImage;
     public Sprite checkSprite;
     public Sprite crossSprite;
@@ -32,13 +31,11 @@ public class MenuManager : MonoBehaviour
 
     void Start()
     {
-        // Инициализация при старте (например, для главного меню)
-        if (resolutionDropdown != null)
+        if (resolutionDropdown != null)
         {
             InitializeResolutionDropdown();
         }
 
-        // Убедимся, что KeybindsScreen изначально выключен, если он назначен
         if (keybindsScreen != null)
         {
             keybindsScreen.SetActive(false);
@@ -47,12 +44,11 @@ public class MenuManager : MonoBehaviour
         KeybindManager.InitializeKeys();
     }
 
-    // --- Логика Запуска и Паузы (Не изменена) ---
-    public void StartGame()
+    public void StartGame()
     {
         Debug.Log("Start pressed!");
         SceneManager.LoadScene("HubScene"); 
-    }
+    }
 
     public void ResetBinds()
     {
@@ -67,33 +63,29 @@ public class MenuManager : MonoBehaviour
 
     public void QuitGame()
     {
-        Debug.Log("Quit pressed!"); // only works in build
-        Application.Quit();
+        Debug.Log("Quit pressed!");
+        Application.Quit();
     }
 
-    #region Pause
-    public void PauseGame(bool status)
+    #region Pause
+    public void PauseGame(bool status)
     {
         pauseScreen.SetActive(status);
 
-        // --- НОВАЯ ЛОГИКА: Выключение основного игрового интерфейса ---
-        if (mainGameCanvas != null)
+        if (mainGameCanvas != null)
         {
-            // Если status = true (ПАУЗА), то mainGameCanvas.SetActive(false) -> выключаем.
-            // Если status = false (ПРОДОЛЖИТЬ), то mainGameCanvas.SetActive(true) -> включаем.
-            mainGameCanvas.SetActive(!status);
+            mainGameCanvas.SetActive(!status);
         }
         Debug.Log("pause pressed!");
     }
-    #endregion
+    #endregion
+
     public void PauseGame2(bool status)
     {
         keybindsScreen.SetActive(false);
     }
 
-
     #region KeybindsScreen
-        // --- НОВАЯ ФУНКЦИЯ ДЛЯ ПЕРЕКЛЮЧЕНИЯ ЭКРАНОВ ---
     public void ToggleKeybindsScreen(bool showKeybinds)
     {
         if (pauseScreen == null || keybindsScreen == null)
@@ -102,39 +94,25 @@ public class MenuManager : MonoBehaviour
             return;
         }
 
-        // Если showKeybinds = true:
-        // 1. Выключаем основной экран паузы
-        pauseScreen.SetActive(!showKeybinds);
-
-        // 2. Включаем экран переназначения клавиш
+        pauseScreen.SetActive(!showKeybinds);
         keybindsScreen.SetActive(showKeybinds);
 
-        // Если вы открываете меню Keybinds, то вы в меню. 
-        // Если вы закрываете его (возвращаясь к pauseScreen), то нужно обновить UI.
         if (!showKeybinds)
         {
-            // Убедитесь, что KeybindManager обновлен
-            // Возможно, здесь потребуется вызвать обновление текста для каждой кнопки RebindButton, 
-            // если вы не используете статический метод для этого.
         }
     }
-    #endregion
+    #endregion
 
-    // --- Логика для Разрешения Экрана (Не изменена) ---
-
-    // 1. Сбор и отображение доступных разрешений
-    private void InitializeResolutionDropdown()
+    private void InitializeResolutionDropdown()
     {
-        // Получаем все разрешения, поддерживаемые устройством
-        // Используем LINQ для фильтрации уникальных разрешений по ширине и высоте
-        resolutions = Screen.resolutions
-      .GroupBy(res => new { res.width, res.height })
-      .Select(g => g.First())
-      .ToArray();
+        resolutions = Screen.resolutions
+        .GroupBy(res => new { res.width, res.height })
+        .Select(g => g.First())
+        .ToArray();
 
-        resolutionDropdown.ClearOptions(); // Очищаем старые записи
+        resolutionDropdown.ClearOptions();
 
-        List<string> options = new List<string>();
+        List<string> options = new List<string>();
         int currentResolutionIndex = 0;
 
         for (int i = 0; i < resolutions.Length; i++)
@@ -142,68 +120,57 @@ public class MenuManager : MonoBehaviour
             string option = resolutions[i].width + " x " + resolutions[i].height;
             options.Add(option);
 
-            // Ищем текущее разрешение, чтобы оно было выбрано по умолчанию
-            if (resolutions[i].width == Screen.currentResolution.width &&
-        resolutions[i].height == Screen.currentResolution.height)
+            if (resolutions[i].width == Screen.currentResolution.width &&
+                resolutions[i].height == Screen.currentResolution.height)
             {
                 currentResolutionIndex = i;
             }
         }
 
-        resolutionDropdown.AddOptions(options); // Добавляем все варианты
-        resolutionDropdown.value = currentResolutionIndex; // Выбираем текущее
-        resolutionDropdown.RefreshShownValue(); // Обновляем отображаемое значение
+        resolutionDropdown.AddOptions(options);
+        resolutionDropdown.value = currentResolutionIndex;
+        resolutionDropdown.RefreshShownValue();
 
-        // Дополнительная проверка: вывод всех найденных разрешений в консоль
-        Debug.Log("Available unique resolutions found:");
+        Debug.Log("Available unique resolutions found:");
         foreach (var res in resolutions)
         {
             Debug.Log($"- {res.width}x{res.height} @ {res.refreshRateRatio.value:0.00} Hz");
         }
     }
 
-    // 2. Установка нового разрешения (вызывается из Dropdown)
-    public void SetResolution(int resolutionIndex)
+    public void SetResolution(int resolutionIndex)
     {
         Resolution resolution = resolutions[resolutionIndex];
-        // Устанавливаем новое разрешение, сохраняя текущий полноэкранный режим
-        Screen.SetResolution(resolution.width, resolution.height, isFullScreen);
+        Screen.SetResolution(resolution.width, resolution.height, isFullScreen);
         Debug.Log($"Resolution set to: {resolution.width}x{resolution.height}");
     }
 
-    // 3. Переключение полноэкранного режима (вызывается из Toggle)
-    public void SetFullscreen(bool isFullscreen)
+    public void SetFullscreen(bool isFullscreen)
     {
         isFullScreen = isFullscreen;
         Screen.fullScreen = isFullscreen;
         Debug.Log($"Fullscreen set to: {isFullscreen}");
     }
 
-
     public void SetVSync(bool isVSyncEnabled)
     {
-        // Шаг 1: Устанавливаем V-Sync
-        QualitySettings.vSyncCount = isVSyncEnabled ? 1 : 0;
+        QualitySettings.vSyncCount = isVSyncEnabled ? 1 : 0;
 
-        // Шаг 2: Управляем ограничением FPS
-        if (isVSyncEnabled)
+        if (isVSyncEnabled)
         {
-            // V-Sync включен, отключаем ограничение FPS
-            Application.targetFrameRate = -1;
+            Application.targetFrameRate = -1;
         }
         else
         {
-            // V-Sync выключен, устанавливаем разумное ограничение FPS (например, 60)
-            // Если хотите полностью убрать ограничение, используйте -1, но 60 лучше для экономии ресурсов.
-            Application.targetFrameRate = 60;
+            Application.targetFrameRate = 60;
         }
 
-        // Обновление спрайта
-        if (checkmarkImage != null)
+        if (checkmarkImage != null)
         {
             checkmarkImage.sprite = isVSyncEnabled ? checkSprite : crossSprite;
         }
     }
+
     public void SoundVolume()
     {
         SoundManager.instance.ChangeSoundVolume(0.2f);

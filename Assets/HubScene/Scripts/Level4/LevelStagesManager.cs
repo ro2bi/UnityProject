@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections; // Нужно для работы корутин
+using System.Collections;
 
 namespace EquationSystem
 {
@@ -43,7 +43,6 @@ namespace EquationSystem
         [Header("Stages")]
         [SerializeField] private StageData[] stages;
 
-        // --- НОВЫЙ БЛОК: НАСТРОЙКИ ФИНАЛА ---
         [Header("End Level Visuals")]
         [Tooltip("Объекты, которые выключатся навсегда после победы")]
         [SerializeField] private GameObject[] objectsToDeactivate;
@@ -52,7 +51,6 @@ namespace EquationSystem
         [SerializeField] private GameObject[] objectsToShowTemporarily;
 
         [SerializeField] private float temporaryShowDuration = 3f;
-        // ------------------------------------
 
         private int currentStage = 0;
         private float timerValue;
@@ -105,9 +103,8 @@ namespace EquationSystem
 
             if (currentStage >= stages.Length)
             {
-                // ПОБЕДА
                 StopLevelTimer();
-                StartCoroutine(EndLevelSequence()); // ЗАПУСК ФИНАЛЬНОЙ ЛОГИКИ
+                StartCoroutine(EndLevelSequence());
             }
             else
             {
@@ -118,25 +115,20 @@ namespace EquationSystem
             }
         }
 
-        // Корутина для финала
         private IEnumerator EndLevelSequence()
         {
-            // 1. Выключаем объекты, которые не нужны в конце
             foreach (GameObject obj in objectsToDeactivate)
             {
                 if (obj != null) obj.SetActive(false);
             }
 
-            // 2. Включаем временные объекты (например, надпись "Победа" или эффекты)
             foreach (GameObject obj in objectsToShowTemporarily)
             {
                 if (obj != null) obj.SetActive(true);
             }
 
-            // 3. Ждем указанное время
             yield return new WaitForSeconds(temporaryShowDuration);
 
-            // 4. Выключаем временные объекты обратно
             foreach (GameObject obj in objectsToShowTemporarily)
             {
                 if (obj != null) obj.SetActive(false);
@@ -181,12 +173,11 @@ namespace EquationSystem
 
         private void ResetLevel()
         {
-            StopAllCoroutines(); // Останавливаем финал, если игрок проиграл в процессе
+            StopAllCoroutines();
 
             currentStage = 0;
             StopLevelTimer();
 
-            // Сброс финала (возвращаем объекты в исходное состояние при рестарте)
             foreach (GameObject obj in objectsToDeactivate) if (obj) obj.SetActive(true);
             foreach (GameObject obj in objectsToShowTemporarily) if (obj) obj.SetActive(false);
 

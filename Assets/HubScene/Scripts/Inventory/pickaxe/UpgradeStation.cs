@@ -2,13 +2,13 @@ using UnityEngine;
 
 public class UpgradeStation : MonoBehaviour, IInteractable
 {
-    [Header("Настройки улучшения")]
-    public string toolToUpgrade = "Stick";     // Что ищем в руках
-    public ItemData resultItem;                // На что меняем (перетащи сюда SharpStick)
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
+    public string toolToUpgrade = "Stick";
+    public ItemData resultItem;
 
-    [Header("Визуал")]
-    public GameObject effect;                  // Эффект искр или пыли
-    public AudioClip upgradeSound;             // Звук заточки
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅ")]
+    public GameObject effect;
+    public AudioClip upgradeSound;
 
     [SerializeField] private string interactionText = "Press E to Interact";
     private readonly string interactKeyName = KeybindManager.INTERACT;
@@ -17,7 +17,6 @@ public class UpgradeStation : MonoBehaviour, IInteractable
 
     public void Interact()
     {
-        // 1. Проверяем, что у игрока в руках
         ItemData currentTool = InventorySystem.Instance.GetEquippedTool();
 
         if (currentTool != null && currentTool.itemName == toolToUpgrade)
@@ -26,21 +25,18 @@ public class UpgradeStation : MonoBehaviour, IInteractable
         }
         else
         {
-            Debug.Log("Чтобы использовать этот камень, нужно держать в руках палку!");
-            // Можно вывести подсказку на экран
+            Debug.Log("пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ!");
         }
     }
 
     private void DoUpgrade()
     {
-        // 2. Вызываем метод улучшения
         InventorySystem.Instance.UpgradeEquippedTool(resultItem);
 
-        // 3. Эффекты
         if (effect) Instantiate(effect, transform.position, Quaternion.identity);
         if (upgradeSound && SoundManager.instance) SoundManager.instance.PlaySound(upgradeSound);
 
-        Debug.Log("Предмет успешно улучшен!");
+        Debug.Log("пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ!");
 
         Destroy(gameObject); 
     }
@@ -48,8 +44,6 @@ public class UpgradeStation : MonoBehaviour, IInteractable
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (!other.CompareTag("Player")) return;
-
-        // Если объект — профессор и финальный сегмент, не показываем подсказку
         ProfessorWalker professor = GetComponent<ProfessorWalker>();
         if (professor != null && professor.finalSegmentOnlyByTrigger)
             return;

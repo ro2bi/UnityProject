@@ -24,7 +24,6 @@ public class EquationSlot : MonoBehaviour
         item.transform.SetParent(transform);
         item.transform.localPosition = Vector3.zero;
 
-        // Показываем содержимое (если у предмета стоит галочка)
         item.SetVisibility(true);
 
         Collider2D itemCollider = item.GetComponent<Collider2D>();
@@ -41,7 +40,6 @@ public class EquationSlot : MonoBehaviour
         if (currentItem == null) return null;
         WeightObject item = currentItem;
 
-        // Скрываем содержимое при извлечении
         item.SetVisibility(false);
 
         Collider2D itemCollider = item.GetComponent<Collider2D>();

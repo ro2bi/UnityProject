@@ -6,9 +6,9 @@ using UnityEngine.SceneManagement;
 
 public class IntroManager : MonoBehaviour
 {
-    public GameObject[] frames;       // assign frames in Inspector
-    public Button nextButton;         // assign the Next button
-    public string menuSceneName = "Level1"; // after intro, load this scene
+    public GameObject[] frames;
+    public Button nextButton;
+    public string menuSceneName = "Level1";
 
     private int currentIndex = 0;
 

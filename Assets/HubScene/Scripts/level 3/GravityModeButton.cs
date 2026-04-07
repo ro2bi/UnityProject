@@ -7,8 +7,7 @@ public class GravityModeButton : MonoBehaviour
     public float targetDuration = 0.2f;
     public float moveSpeed = 3f;
 
-    // НОВОЕ: Значение G для этой кнопки
-    public float gravityG = 1.0f; //  5.0 для большого G
+    public float gravityG = 1.0f;
 
     private void OnTriggerEnter2D(Collider2D other)
     {
@@ -22,7 +21,6 @@ public class GravityModeButton : MonoBehaviour
                 player.defaultJumpDuration = targetDuration;
                 player.speed = moveSpeed;
 
-                // Устанавливаем G
                 player.gravityMultiplier = gravityG;
 
                 player.ResetJumpParameters();

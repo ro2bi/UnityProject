@@ -15,8 +15,8 @@ public class firetrap : MonoBehaviour
     [Header("SFX")]
     [SerializeField] private AudioClip FireTrapSound;
 
-    private bool triggered; //когда ловушка тригериться
-    private bool active; //когда может атаковать игрока
+    private bool triggered;
+    private bool active;
 
     private void Awake()
     {

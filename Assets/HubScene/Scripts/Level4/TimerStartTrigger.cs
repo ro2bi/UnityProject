@@ -12,7 +12,7 @@ namespace EquationSystem
             if (other.transform == player)
             {
                 manager.StartLevelTimer();
-                gameObject.SetActive(false); // Выключается после активации
+                gameObject.SetActive(false);
             }
         }
     }

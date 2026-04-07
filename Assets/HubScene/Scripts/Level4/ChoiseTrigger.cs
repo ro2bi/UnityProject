@@ -5,7 +5,7 @@ namespace EquationSystem
     public class ChoiceTrigger : MonoBehaviour
     {
         [SerializeField] private int stageIndex;
-        [SerializeField] private bool isCorrect; // Менеджер будет менять это значение
+        [SerializeField] private bool isCorrect;
         [SerializeField] private LevelStagesManager manager;
         [SerializeField] private Transform player;
 

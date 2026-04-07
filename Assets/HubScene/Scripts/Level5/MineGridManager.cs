@@ -5,21 +5,21 @@ using System.Collections.Generic;
 
 public class MineGridManager2D : MonoBehaviour
 {
-    [Header("Настройки поля")]
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ")]
     public int width = 10;
     public int height = 10;
     public int mineCount = 15;
-    public float spacing = 1.1f; // Расстояние между центрами клеток
+    public float spacing = 1.1f;
     public int safeRows = 2;
 
-    [Header("Ссылки на префабы")]
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
     public GameObject cellPrefab;
 
-    [Header("Ссылки на Игрока")]
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ")]
     public Transform playerTransform;
-    public Transform startPoint; // Точка телепортации при смерти
+    public Transform startPoint;
 
-    [Header("UI элементы")]
+    [Header("UI пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
     public GameObject deathScreenUI;
     public GameObject mathUIPanel;
     public TMP_Text mathEquationText;
@@ -27,19 +27,15 @@ public class MineGridManager2D : MonoBehaviour
     public Button submitButton;
 
     private MineCell2D[,] grid;
-    private MineCell2D currentSolvingCell; // Клетка, которую мы сейчас "решаем"
+    private MineCell2D currentSolvingCell;
 
-    // Статическая переменная, чтобы другие скрипты (например, движение игрока)
-    // могли знать, заблокировано ли управление.
     public static bool IsUIOpen = false;
 
     void Start()
     {
-        // Скрываем окна при старте
         if (mathUIPanel != null) mathUIPanel.SetActive(false);
         if (deathScreenUI != null) deathScreenUI.SetActive(false);
 
-        // Настраиваем кнопку подтверждения
         if (submitButton != null)
             submitButton.onClick.AddListener(CheckAnswer);
 
@@ -48,7 +44,6 @@ public class MineGridManager2D : MonoBehaviour
 
     void Update()
     {
-        // Если окно открыто, проверяем нажатие Enter для подтверждения ответа
         if (IsUIOpen && Input.GetKeyDown(KeyCode.Return))
         {
             CheckAnswer();
@@ -59,7 +54,6 @@ public class MineGridManager2D : MonoBehaviour
     {
         grid = new MineCell2D[width, height];
 
-        // 1. Создание клеток
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
@@ -73,13 +67,10 @@ public class MineGridManager2D : MonoBehaviour
             }
         }
 
-        // 2. Расстановка мин (С ЗАПРЕТОМ В ВЕРХНИХ РЯДАХ)
         int placedMines = 0;
         while (placedMines < mineCount)
         {
             int rx = Random.Range(0, width);
-            // Мины могут спавниться только ниже "безопасной зоны"
-            // (height - safeRows) ограничивает спавн по вертикали
             int ry = Random.Range(0, height - safeRows);
 
             if (!grid[rx, ry].isMine)
@@ -89,7 +80,6 @@ public class MineGridManager2D : MonoBehaviour
             }
         }
 
-        // 3. Подсчет соседей
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
@@ -101,8 +91,6 @@ public class MineGridManager2D : MonoBehaviour
             }
         }
 
-        // 4. ПРИНУДИТЕЛЬНОЕ ОТКРЫТИЕ БЕЗОПАСНОЙ ЗОНЫ
-        // Проходим по верхним рядам и открываем их
         for (int x = 0; x < width; x++)
         {
             for (int y = height - safeRows; y < height; y++)
@@ -131,7 +119,6 @@ public class MineGridManager2D : MonoBehaviour
         return count;
     }
 
-    // Вызывается из MineCell2D, когда игрок наступает на клетку с цифрой
     public void OpenMathPuzzle(MineCell2D cell)
     {
         currentSolvingCell = cell;
@@ -139,15 +126,13 @@ public class MineGridManager2D : MonoBehaviour
 
         mathUIPanel.SetActive(true);
 
-        // Генерируем текст примера (берется из статического класса MathEquationGenerator)
         string equation = MathEquationGenerator.GetEquation(cell.neighboringMines);
-        mathEquationText.text = "РЕШИТЕ ПРИМЕР, ЧТОБЫ ПРОЙТИ: \n" + equation;
+        mathEquationText.text = "пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ: \n" + equation;
 
         answerInputField.text = "";
-        answerInputField.ActivateInputField(); // Сразу ставим курсор в поле ввода
+        answerInputField.ActivateInputField();
     }
 
-    // Проверка ответа из InputField
     public void CheckAnswer()
     {
         if (currentSolvingCell == null) return;
@@ -157,21 +142,18 @@ public class MineGridManager2D : MonoBehaviour
 
         if (isNumeric && playerAnswer == currentSolvingCell.neighboringMines)
         {
-            // Правильно!
             IsUIOpen = false;
             mathUIPanel.SetActive(false);
-            currentSolvingCell.Reveal(true); // Открываем клетку
+            currentSolvingCell.Reveal(true);
         }
         else
         {
-            // Неправильно - можно добавить тряску окна или звук ошибки
-            Debug.Log("Неверный ответ!");
+            Debug.Log("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ!");
             answerInputField.text = "";
             answerInputField.ActivateInputField();
         }
     }
 
-    // Рекурсивное открытие пустых соседей (как в сапере)
     public void RevealEmptyNeighbors(int x, int y)
     {
         for (int i = -1; i <= 1; i++)
@@ -195,10 +177,9 @@ public class MineGridManager2D : MonoBehaviour
 
     public void TriggerGameOver()
     {
-        Debug.Log("БАБАХ!");
+        Debug.Log("пїЅпїЅпїЅпїЅпїЅ!");
         deathScreenUI.SetActive(true);
 
-        // Телепортируем игрока на начало
         if (playerTransform != null && startPoint != null)
         {
             playerTransform.position = startPoint.position;
@@ -207,6 +188,5 @@ public class MineGridManager2D : MonoBehaviour
 
     public void CheckWin()
     {
-        // Здесь можно добавить проверку: открыты ли все безопасные клетки
     }
 }

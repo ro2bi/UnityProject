@@ -2,14 +2,13 @@ using UnityEngine;
 
 public class TeleportPoint : MonoBehaviour
 {
-    [Header("Куда телепортировать игрока")]
+    [Header("пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ")]
     public Transform teleportTarget;
 
     private bool playerInside = false;
 
     void Update()
     {
-        // Проверка нажатия кнопки "Interact" через KeybindManager
         if (playerInside && Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.INTERACT)))
         {
             TeleportPlayer();

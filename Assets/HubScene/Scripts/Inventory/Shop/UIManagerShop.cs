@@ -39,7 +39,6 @@ public class UIManagerShop : MonoBehaviour
     private bool isShopOpen = false;
     private bool escPressedThisFrame = false;
 
-    // Свойства для обращения из других скриптов
     public static bool IsWindowOpen => Instance != null && Instance.mainWindow.activeSelf;
     public static bool EscPressedThisFrame => Instance != null && Instance.escPressedThisFrame;
 
@@ -88,25 +87,20 @@ public class UIManagerShop : MonoBehaviour
     {
         if (!isInitialized) return;
 
-        // Сбрасываем флаг в начале каждого кадра
         escPressedThisFrame = false;
 
-        // Открытие инвентаря игроком
         if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.INVENTORY)))
         {
             if (mainWindow.activeSelf) CloseWindow();
             else OpenJustInventory();
         }
 
-        // Закрытие на ESC
         if (Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.TOMENU)) && mainWindow.activeSelf)
         {
-            escPressedThisFrame = true; // Устанавливаем флаг перед закрытием
+            escPressedThisFrame = true;
             CloseWindow();
         }
     }
-
-    // --- МЕТОДЫ ОТКРЫТИЯ ---
 
     public void OpenJustInventory()
     {
@@ -157,7 +151,6 @@ public class UIManagerShop : MonoBehaviour
         SetUIState(false);
     }
 
-    // --- ЛОГИКА ОБНОВЛЕНИЯ UI ---
 
     private void SwitchTab(bool showInventory)
     {

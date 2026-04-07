@@ -9,7 +9,6 @@ public class InteractPoints : MonoBehaviour
 
     void Update()
     {
-        // Получаем кнопку взаимодействия из KeybindManager
         KeyCode interactKey = KeybindManager.GetKey(KeybindManager.INTERACT);
 
         if (playerInside && Input.GetKeyDown(interactKey))
@@ -21,7 +20,6 @@ public class InteractPoints : MonoBehaviour
     private void Interact()
     {
         Debug.Log("INTERACT with: " + gameObject.name);
-        // Здесь ты можешь открывать диалоги, UI, квесты, инвентарь и т.д.
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -30,7 +28,6 @@ public class InteractPoints : MonoBehaviour
         {
             playerInside = true;
 
-            // Можешь заменить на UI, если нужно
             Debug.Log($"{interactionText} ({KeybindManager.GetKey(KeybindManager.INTERACT)})");
         }
     }

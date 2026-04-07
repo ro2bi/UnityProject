@@ -4,17 +4,17 @@ using System;
 
 public class BreakableMathWall : MonoBehaviour, IInteractable
 {
-    [Header("Настройки инструмента")]
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
     public string requiredToolName = "IronPickaxe";
 
-    [Header("Математические уровни стены")]
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ")]
     public List<MathTimingLevel> wallLevels = new List<MathTimingLevel>();
 
-    [Header("Что исчезнет после разрушения")]
-    [Tooltip("Перетащи сюда все объекты, которые должны пропасть (стена, коллизия и т.д.)")]
+    [Header("пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
+    [Tooltip("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅ.пїЅ.)")]
     public List<GameObject> objectsToDestroy = new List<GameObject>();
 
-    [Header("Эффекты")]
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
     public GameObject breakEffect;
     public AudioClip breakSound;
 
@@ -28,17 +28,15 @@ public class BreakableMathWall : MonoBehaviour, IInteractable
         }
         else
         {
-            Debug.Log($"Нужна: {requiredToolName}");
+            Debug.Log($"пїЅпїЅпїЅпїЅпїЅ: {requiredToolName}");
         }
     }
 
     private void OnMinigameSuccess()
     {
-        // Эффекты
         if (breakEffect) Instantiate(breakEffect, transform.position, Quaternion.identity);
         if (breakSound && SoundManager.instance) SoundManager.instance.PlaySound(breakSound);
 
-        // УДАЛЯЕМ ВСЕ НАЗНАЧЕННЫЕ ОБЪЕКТЫ
         if (objectsToDestroy.Count > 0)
         {
             foreach (GameObject obj in objectsToDestroy)
@@ -48,10 +46,9 @@ public class BreakableMathWall : MonoBehaviour, IInteractable
         }
         else
         {
-            // Если список пуст, удаляем хотя бы сам объект со скриптом
             Destroy(gameObject);
         }
 
-        Debug.Log("Стена и связанные объекты уничтожены!");
+        Debug.Log("пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ!");
     }
 }

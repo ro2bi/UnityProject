@@ -4,7 +4,6 @@ using TMPro;
 
 public class ProfessorWalker : MonoBehaviour
 {
-    // ===================== DATA =====================
     [System.Serializable]
     public class TimedPhrase
     {
@@ -20,7 +19,7 @@ public class ProfessorWalker : MonoBehaviour
         public Transform endPoint;
 
         [Header("Рух")]
-        public float speed = 1.5f; // 👈 ІНДИВІДУАЛЬНА ШВИДКІСТЬ
+        public float speed = 1.5f;
         public bool playWalkAnimation = true;
 
         [Header("Фрази під час руху")]
@@ -30,12 +29,11 @@ public class ProfessorWalker : MonoBehaviour
         [TextArea] public string[] hints;
     }
 
-
     [Header("Сегменти (0→1, 2→3, 4→5 …)")]
     public Segment[] segments;
 
     [Header("Автостарт")]
-    public float autoStartDelay = 1f; // 👈 ЗАДЕРЖКА ПЕРЕД АВТОСТАРТОМ
+    public float autoStartDelay = 1f;
 
     [Header("Анімації")]
     public string speedParam = "Speed";
@@ -53,17 +51,20 @@ public class ProfessorWalker : MonoBehaviour
     [Header("UI підказок")]
     public GameObject hintBubble;
     public TextMeshProUGUI hintText;
+
     [Header("Фінальний сегмент")]
     public bool finalSegmentOnlyByTrigger = false;
+
     [Header("Фінальная стіна")]
     public GameObject finalWall;
+
     [Header("Фінальний контролер дороги")]
     public RoadController roadController;
-    [Header("Настройки платных подсказок")]
-    public string hintItemName = "Книга Знаний"; // Название предмета из ItemData
-    private bool isCurrentHintUnlocked = false; // Разблокирована ли подсказка на этой остановке
 
-    // ===================== STATE =====================
+    [Header("Настройки платных подсказок")]
+    public string hintItemName = "Книга Знаний";
+    private bool isCurrentHintUnlocked = false;
+
     private int segmentIndex = 0;
     private bool waitingForInteract = true;
     private bool walking = false;
@@ -73,28 +74,23 @@ public class ProfessorWalker : MonoBehaviour
 
     private Coroutine phraseRoutine;
 
-    // ===================== START =====================
     private void Start()
     {
-        // Вимикаємо панелі на старті
         if (dialoguePanel != null)
             dialoguePanel.SetActive(false);
 
         if (hintBubble != null)
             hintBubble.SetActive(false);
 
-        // АВТОСТАРТ ЧЕРЕЗ 1 СЕКУНДУ
         StartCoroutine(AutoStart());
     }
 
-    // ===================== АВТОСТАРТ =====================
     private IEnumerator AutoStart()
     {
         yield return new WaitForSeconds(autoStartDelay);
         StartSegment();
     }
 
-    // ===================== UPDATE =====================
     private void Update()
     {
         if (!finalSegmentOnlyByTrigger &&
@@ -116,13 +112,12 @@ public class ProfessorWalker : MonoBehaviour
         }
     }
 
-    // ===================== LOGIC =====================
     private void StartSegment()
     {
         waitingForInteract = false;
         walking = true;
         showingHints = false;
-        isCurrentHintUnlocked = false; // Сбрасываем при начале движения
+        isCurrentHintUnlocked = false;
         hintIndex = 0;
 
         if (hintBubble != null)
@@ -147,13 +142,11 @@ public class ProfessorWalker : MonoBehaviour
         Segment s = segments[segmentIndex];
         Vector3 dir = (s.endPoint.position - transform.position).normalized;
 
-        // Движение
         transform.position += dir * s.speed * Time.deltaTime;
 
         if (anim != null && s.playWalkAnimation)
             anim.SetFloat(speedParam, Mathf.Abs(dir.x));
 
-        // Проверка, дошли ли до конца сегмента
         if (Vector3.Distance(transform.position, s.endPoint.position) < 0.1f)
         {
             walking = false;
@@ -166,14 +159,11 @@ public class ProfessorWalker : MonoBehaviour
 
             showingHints = true;
 
-            // ===== ДОБАВЛЯЕМ =====
             if (segmentIndex == segments.Length - 1)
             {
-                // Последний сегмент — открываем путь
                 if (roadController != null)
                     roadController.ActivateRoad();
 
-                // Если используется отдельная стена
                 if (finalWall != null)
                     finalWall.SetActive(false);
             }
@@ -182,7 +172,6 @@ public class ProfessorWalker : MonoBehaviour
 
     private IEnumerator ShowPhrases(TimedPhrase[] phrases)
     {
-        // Фрази показуються ЗАВЖДИ під час ходіння
         if (dialoguePanel != null)
             dialoguePanel.SetActive(true);
 
@@ -193,34 +182,28 @@ public class ProfessorWalker : MonoBehaviour
             yield return new WaitForSeconds(p.duration);
         }
 
-        // Закриваємо панель після всіх фраз
         if (dialoguePanel != null)
             dialoguePanel.SetActive(false);
     }
 
     private void ShowNextHint()
     {
-        // 1. Проверяем, разблокирована ли подсказка
         if (!isCurrentHintUnlocked)
         {
-            // Пытаемся "купить" доступ к подсказкам за предмет
             if (InventorySystem.Instance.HasItem(hintItemName))
             {
                 InventorySystem.Instance.RemoveItemByName(hintItemName);
                 isCurrentHintUnlocked = true;
                 Debug.Log("Подсказка оплачена предметом.");
-                // После оплаты сразу показываем первую подсказку (идем дальше по коду)
             }
             else
             {
-                // Предмета нет - выводим предупреждение
                 if (hintBubble != null) hintBubble.SetActive(true);
                 if (hintText != null) hintText.text = $"Нужен предмет: {hintItemName}";
-                return; // Выходим, не инкрементируя hintIndex
+                return;
             }
         }
 
-        // 2. Логика показа самих подсказок (если оплачено)
         string[] hints = segments[segmentIndex].hints;
 
         if (hintIndex < hints.Length)
@@ -235,52 +218,42 @@ public class ProfessorWalker : MonoBehaviour
         }
         else
         {
-            // Все подсказки показаны
             if (hintBubble != null)
                 hintBubble.SetActive(false);
         }
     }
 
-    // ===================== LEVEL MANAGER CALLS =====================
     public IEnumerator DisappearTeleportAppear(Vector3 newPos)
     {
-        // Ховаємо всі UI панелі
         if (dialoguePanel != null)
             dialoguePanel.SetActive(false);
         if (hintBubble != null)
             hintBubble.SetActive(false);
 
-        // Зупиняємо анімацію перед зникненням
         if (anim != null)
             anim.SetFloat(speedParam, 0);
 
-        // Анімація зникнення
         if (anim != null)
             anim.Play(disappearAnim);
         yield return new WaitForSeconds(disappearDuration);
 
-        // Телепорт
         transform.position = newPos;
 
-        // Анімація появи
         if (anim != null)
             anim.Play(appearAnim);
         yield return new WaitForSeconds(0.5f);
 
-        // Переходимо до наступного сегмента
         segmentIndex++;
         if (segmentIndex >= segments.Length)
             segmentIndex = 0;
 
-        // ВАЖНО
-        waitingForInteract = true;   // ждём игрока
+        waitingForInteract = true;
         showingHints = false;
         walking = false;
 
         finalSegmentOnlyByTrigger = true;
     }
 
-    // ===================== TRIGGERS =====================
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("Player"))
@@ -292,11 +265,9 @@ public class ProfessorWalker : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             playerInside = false;
-
-            // НЕ закриваємо UI коли гравець виходить
-            // Фрази та підказки продовжують показуватися
         }
     }
+
     public void StartCurrentSegmentExternally()
     {
         if (waitingForInteract)
@@ -304,25 +275,22 @@ public class ProfessorWalker : MonoBehaviour
             StartSegment();
         }
     }
+
     public IEnumerator FinalDisappear()
     {
-        // Отключаем все UI панели
         if (dialoguePanel != null)
             dialoguePanel.SetActive(false);
         if (hintBubble != null)
             hintBubble.SetActive(false);
 
-        // Останавливаем анимацию движения
         if (anim != null)
             anim.SetFloat(speedParam, 0);
 
-        // Анимация исчезновения
         if (anim != null)
             anim.Play(disappearAnim);
 
         yield return new WaitForSeconds(disappearDuration);
 
-        // Отключаем объект полностью
         gameObject.SetActive(false);
     }
 }

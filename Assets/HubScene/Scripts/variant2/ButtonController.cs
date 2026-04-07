@@ -73,15 +73,12 @@ public class ButtonController : MonoBehaviour
 
     private void ApplyPressEffects()
     {
-        // ❌ деактивуємо обʼєкти (тут стіна ВИМИКАЄТЬСЯ)
         foreach (var obj in disableOnPress)
             if (obj != null) obj.SetActive(false);
 
-        // ✅ активуємо обʼєкти (якщо щось інше потрібно)
         foreach (var obj in enableOnPress)
             if (obj != null) obj.SetActive(true);
 
-        // ✅ ВИКЛИКАЄМО ТЕЛЕПОРТАЦІЮ ПРОФЕСОРА
         if (levelManager != null && nextProfessorPosition != null)
         {
             levelManager.OnLevelPassed(nextProfessorPosition.position);

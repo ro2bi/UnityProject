@@ -1,15 +1,7 @@
 using UnityEngine;
 
-// Цей скрипт зберігає X та Y
-// Він перевіряє умови трьох етапів головоломки
-// Він рахує спроби у вигляді сердечок
-// Він відкриває двері після проходження останнього етапу
-// Він також показує дорогу після проходження
-// Він виконує повний скидання після поразки
 public class PuzzleManagerSimple : MonoBehaviour
 {
-    // Результат перевірки відповіді
-    // Планшет використовує це щоб вирішити що робити далі
     public enum CheckResult
     {
         Correct,
@@ -18,47 +10,32 @@ public class PuzzleManagerSimple : MonoBehaviour
     }
 
     [Header("Посилання")]
-    // Посилання на гравця для телепорту у хаб
     [SerializeField] private Transform player;
 
-    // Точка куди повертається гравець у хабі
     [SerializeField] private Transform hubReturnPoint;
 
-    // Основні двері які відкриваються після проходження
     [SerializeField] private DoorPuzzle door;
 
-    // Обʼєкт дороги
-    // Зʼявляється після повного проходження головоломки
     [SerializeField] private GameObject roadObject;
 
-    // Обʼєкт тригера який має зʼявитися після перемоги
-    // Його потрібно перетягнути в інспекторі
-    // На старті він буде вимкнений щоб не було видно і щоб не працював колайдер
     [SerializeField] private GameObject triggerAfterWin;
 
     [Header("Спроби")]
-    // Кількість етапів у головоломці
     private const int totalStages = 3;
 
-    // Максимальна кількість спроб
     [SerializeField] private int maxLives = 3;
 
-    // Поточна кількість спроб
     private int lives;
 
     [Header("Значення")]
-    // Поточні значення змінних
     private int x;
     private int y;
 
-    // Поточний етап
     private int stage;
 
-    // Межі значень змінних
     private const int minValue = 0;
     private const int maxValue = 10;
 
-    // Чи потрібно показувати сердечка
     private bool heartsVisible;
 
     public int X => x;
@@ -66,54 +43,42 @@ public class PuzzleManagerSimple : MonoBehaviour
     public int Lives => lives;
     public bool HeartsVisible => heartsVisible;
 
-    // Чи завершена головоломка
     public bool IsCompleted => stage >= totalStages;
 
     private void Start()
     {
-        // Початковий стан головоломки
         stage = 0;
         lives = maxLives;
 
-        // На старті сердечка приховані
         heartsVisible = false;
 
-        // Переконуємось що обʼєкт дверей активний
-        // Це потрібно щоб CloseDoor міг відпрацювати
         if (door != null)
         {
             door.gameObject.SetActive(true);
             door.CloseDoor();
         }
 
-        // Ховаємо дорогу на старті
         if (roadObject != null)
             roadObject.SetActive(false);
 
-        // Ховаємо тригер на старті
-        // Якщо його вимкнути як GameObject, він не буде видимий і не буде реагувати на дотики
         if (triggerAfterWin != null)
             triggerAfterWin.SetActive(false);
 
-        // Скидаємо X та Y
         ResetValues();
     }
 
     public void EnableHearts()
     {
-        // Викликається при першому відкритті планшета
         heartsVisible = true;
     }
 
     public void DisableHearts()
     {
-        // Викликається після перемоги або поразки
         heartsVisible = false;
     }
 
     public void ResetValues()
     {
-        // Скидання значень змінних
         x = 0;
         y = 0;
     }
@@ -158,29 +123,21 @@ public class PuzzleManagerSimple : MonoBehaviour
 
         if (correct)
         {
-            // Переходимо на наступний етап
             stage++;
 
-            // Скидаємо значення
             ResetValues();
 
-            // Якщо це був останній етап
             if (IsCompleted)
             {
-                // Переконуємось що двері активні
-                // Це потрібно щоб OpenDoor міг відпрацювати
                 if (door != null)
                 {
                     door.gameObject.SetActive(true);
                     door.OpenDoor();
                 }
 
-                // Показуємо дорогу після перемоги
                 if (roadObject != null)
                     roadObject.SetActive(true);
 
-                // Показуємо тригер після перемоги
-                // Після цього тригер стає видимим і починає працювати
                 if (triggerAfterWin != null)
                     triggerAfterWin.SetActive(true);
             }
@@ -188,7 +145,6 @@ public class PuzzleManagerSimple : MonoBehaviour
             return CheckResult.Correct;
         }
 
-        // Якщо відповідь неправильна
         lives--;
         ResetValues();
 
@@ -216,37 +172,29 @@ public class PuzzleManagerSimple : MonoBehaviour
 
     public void TeleportFailAndReset()
     {
-        // Телепорт у хаб
         if (player != null && hubReturnPoint != null)
             player.position = hubReturnPoint.position;
 
-        // Повний скидання головоломки
         stage = 0;
         lives = maxLives;
         ResetValues();
         DisableHearts();
 
-        // Переконуємось що обʼєкт дверей активний
-        // Це потрібно щоб CloseDoor міг відпрацювати
         if (door != null)
         {
             door.gameObject.SetActive(true);
             door.CloseDoor();
         }
 
-        // Ховаємо дорогу після поразки
         if (roadObject != null)
             roadObject.SetActive(false);
 
-        // Ховаємо тригер після поразки
-        // Це важливо якщо гравець програв після того як вже колись переміг
         if (triggerAfterWin != null)
             triggerAfterWin.SetActive(false);
     }
 
     public void WinFinalize()
     {
-        // Прибираємо сердечка після перемоги
         DisableHearts();
     }
 }

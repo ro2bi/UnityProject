@@ -11,17 +11,14 @@ public class SoundManager : MonoBehaviour
         soundSource = GetComponent<AudioSource>();
         musicSource = transform.GetChild(0).GetComponent<AudioSource>();
 
-        //Keep this object even when we go to new scene
         if (instance == null)
         {
             instance = this;
             DontDestroyOnLoad(gameObject);
         }
-        //Destroy duplicate gameobjects
         else if (instance != null && instance != this)
             Destroy(gameObject);
 
-        //Assign initial volumes
         ChangeMusicVolume(0.4f);
         ChangeSoundVolume(0.2f);
     }
@@ -41,37 +38,30 @@ public class SoundManager : MonoBehaviour
 
     private void ChangeSourceVolume(float baseVolume, string volumeName, float change, AudioSource source)
     {
-        //Get initial value of volume and change it
         float currentVolume = PlayerPrefs.GetFloat(volumeName, 1);
         currentVolume += change;
 
-        //Check if we reached the maximum or minimum value
         if (currentVolume > 1)
             currentVolume = 0;
         else if (currentVolume < 0)
             currentVolume = 1;
 
-        //Assign final value
         float finalVolume = currentVolume * baseVolume;
         source.volume = finalVolume;
 
-        //Save final value to player prefs
         PlayerPrefs.SetFloat(volumeName, currentVolume);
     }
 
     public void SetMusicVolume(float newVolume)
     {
-        // Ограничиваем значение от 0 до 1.0
         float finalVolume = Mathf.Clamp01(newVolume);
 
-        // Устанавливаем громкость AudioSource
         musicSource.volume = finalVolume;
 
-        // Сохраняем значение (для загрузки при старте игры)
         PlayerPrefs.SetFloat("musicVolume", finalVolume);
         PlayerPrefs.Save();
 
-        Debug.Log("Громкость музыки установлена на: " + finalVolume);
+        Debug.Log("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ: " + finalVolume);
     }
 
     public void IncreaseMusicVolume(float step = 0.05f)
@@ -79,7 +69,7 @@ public class SoundManager : MonoBehaviour
         float current = PlayerPrefs.GetFloat("musicVolume", 1f);
         current += step;
 
-        if (current > 1f) current = 1f;    // ограничиваем максимумом
+        if (current > 1f) current = 1f;
 
         SetMusicVolume(current);
     }
@@ -89,12 +79,11 @@ public class SoundManager : MonoBehaviour
         float current = PlayerPrefs.GetFloat("musicVolume", 1f);
         current -= step;
 
-        if (current < 0f) current = 0f;    // ограничиваем минимумом
+        if (current < 0f) current = 0f;
 
         SetMusicVolume(current);
     }
 
-    // Измените ваш существующий ChangeMusicVolume:
     public void ChangeMusicVolume(float _change)
     {
         
@@ -102,7 +91,7 @@ public class SoundManager : MonoBehaviour
         currentVolume += _change;
         if (currentVolume > 1) currentVolume = 0;
         else if (currentVolume < 0) currentVolume = 1;
-        SetMusicVolume(currentVolume); // вызываем новый метод
+        SetMusicVolume(currentVolume);
         
     }
 }

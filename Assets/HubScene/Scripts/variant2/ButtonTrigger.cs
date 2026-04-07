@@ -23,7 +23,7 @@ public class ButtonTrigger : MonoBehaviour
         if (col.TryGetComponent(out WeightObject obj) && obj == currentObj)
         {
             currentObj = null;
-            button.CheckWeight(0); // отжимаем кнопку
+            button.CheckWeight(0);
         }
     }
 
@@ -37,7 +37,7 @@ public class ButtonTrigger : MonoBehaviour
         }
         else
         {
-            button.CheckWeight(0); // если объекта нет - кнопка отжата
+            button.CheckWeight(0);
         }
     }
 }

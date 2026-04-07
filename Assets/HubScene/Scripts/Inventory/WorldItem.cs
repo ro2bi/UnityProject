@@ -17,14 +17,12 @@ public class WorldItem : MonoBehaviour
 
     private void Start()
     {
-        // Проверка на дубликаты
         if (!string.IsNullOrEmpty(uniqueID) && InventorySystem.Instance.WasItemPickedUp(uniqueID))
         {
             Destroy(gameObject);
             return;
         }
 
-        // ПРИМЕНЯЕМ РАЗМЕР ИЗ ITEMDATA
         ApplyScale();
 
         if (item != null && spriteRenderer != null)
@@ -39,7 +37,7 @@ public class WorldItem : MonoBehaviour
         amount = newAmount;
         uniqueID = "";
 
-        ApplyScale(); // ПРИМЕНЯЕМ РАЗМЕР ПРИ ВЫБРОСЕ
+        ApplyScale();
 
         if (spriteRenderer != null && item != null)
             spriteRenderer.sprite = item.icon;
@@ -49,14 +47,12 @@ public class WorldItem : MonoBehaviour
     {
         if (item != null)
         {
-            // Устанавливаем масштаб объекта по всем осям
             transform.localScale = new Vector3(item.worldScale, item.worldScale, 1f);
         }
     }
 
     private void Update()
     {
-        // Проверка нажатия кнопки взаимодействия
         if (canPickUp && Input.GetKeyDown(KeybindManager.GetKey(KeybindManager.INTERACT)))
         {
             TryPickUp();
@@ -87,7 +83,7 @@ public class WorldItem : MonoBehaviour
             }
         }
 
-        // БАГ 1: Если предмет на сцене имел уникальный ID, помечаем его как "подобранный"
+
         if (!string.IsNullOrEmpty(uniqueID))
         {
             InventorySystem.Instance.RegisterPickedUpItem(uniqueID);

@@ -16,7 +16,7 @@ public class LevelStage
     [Header("Настройки Режима")]
     public bool isComparisonMode = false;
     [Tooltip("Если включено, то ПОСЛЕ завершения этого уровня таймер следующего уровня сам не включится")]
-    public bool stopTimerAfterThisLevel = false; // ТА САМАЯ ГАЛОЧКА
+    public bool stopTimerAfterThisLevel = false;
 
     [Header("Слоты")]
     public EquationSlot[] levelSlots;
@@ -93,19 +93,15 @@ public class EquationManager : MonoBehaviour
         if (current.levelData != null && cinematicManager != null) cinematicManager.PlayIntro(current.levelData);
     }
 
-    // ИЗМЕНЕННЫЙ МЕТОД ПЕРЕХОДА
     public void GoToNextLevel()
     {
         if (currentStageIndex < stages.Count - 1)
         {
-            // 1. Проверяем галочку у уровня, который мы ТОЛЬКО ЧТО ЗАКОНЧИЛИ
             bool skipNextTimer = stages[currentStageIndex].stopTimerAfterThisLevel;
 
-            // 2. Переходим к следующему
             currentStageIndex++;
             SetupCurrentStage();
 
-            // 3. Запускаем таймер только если на ПРЕДЫДУЩЕМ уровне не стоял запрет
             if (!skipNextTimer)
             {
                 StartLevelTimer();
@@ -117,7 +113,6 @@ public class EquationManager : MonoBehaviour
         }
     }
 
-    // Лог прогресса в консоль
     private void LogSlotsProgress()
     {
         if (currentStageIndex >= stages.Count) return;

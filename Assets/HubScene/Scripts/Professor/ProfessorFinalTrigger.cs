@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class ProfessorFinalTrigger : MonoBehaviour
 {
-    public ProfessorWalker professor; // Ссылка на профессора
-    public bool oneTime = true;       // Чтобы сработало один раз
+    public ProfessorWalker professor;
+    public bool oneTime = true;
 
     private bool triggered = false;
 
@@ -15,7 +15,6 @@ public class ProfessorFinalTrigger : MonoBehaviour
         {
             triggered = true;
 
-            // Запускаем плавное исчезновение профессора
             if (professor != null)
             {
                 professor.StartCoroutine(professor.FinalDisappear());

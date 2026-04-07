@@ -7,18 +7,18 @@ public class ItemTooltip : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
 {
     public static ItemTooltip Instance { get; private set; }
 
-    [Header("UI Текстовые компоненты")]
+    [Header("UI пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
     public TextMeshProUGUI itemNameText;
     public TextMeshProUGUI descriptionText;
     public TextMeshProUGUI priceText;
     public TextMeshProUGUI inventoryCountText;
 
-    [Header("Панель и Кнопки")]
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ")]
     public GameObject tooltipPanel;
     public Button buyButton;
     public Button sellButton;
     public Button dropButton;
-    public Button equipButton; // Твоя кнопка
+    public Button equipButton;
 
     private ItemData currentItem;
     private bool isInInventory;
@@ -29,12 +29,10 @@ public class ItemTooltip : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
 
-        // Подписка на кнопки
         if (buyButton) buyButton.onClick.AddListener(OnBuyClicked);
         if (sellButton) sellButton.onClick.AddListener(OnSellClicked);
         if (dropButton) dropButton.onClick.AddListener(OnDropClicked);
 
-        // НОВОЕ: Подписка на кнопку экипировки
         if (equipButton) equipButton.onClick.AddListener(OnEquipClicked);
 
         HideTooltip();
@@ -60,15 +58,13 @@ public class ItemTooltip : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
             if (sellButton) sellButton.gameObject.SetActive(true);
             if (dropButton) dropButton.gameObject.SetActive(true);
 
-            // НОВОЕ: Показываем кнопку экипировки только для Одежды и Инструментов
             if (equipButton)
             {
                 bool canEquip = item.itemType == ItemType.Clothing || item.itemType == ItemType.Tool;
                 equipButton.gameObject.SetActive(canEquip);
 
-                // Меняем текст кнопки для красоты
                 var btnText = equipButton.GetComponentInChildren<TextMeshProUGUI>();
-                if (btnText) btnText.text = (item.itemType == ItemType.Clothing) ? "Надеть" : "Взять в руки";
+                if (btnText) btnText.text = (item.itemType == ItemType.Clothing) ? "пїЅпїЅпїЅпїЅпїЅпїЅ" : "пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ";
             }
         }
         else
@@ -79,7 +75,7 @@ public class ItemTooltip : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
             if (buyButton) buyButton.gameObject.SetActive(true);
             if (sellButton) sellButton.gameObject.SetActive(false);
             if (dropButton) dropButton.gameObject.SetActive(false);
-            if (equipButton) equipButton.gameObject.SetActive(false); // В магазине нельзя экипировать
+            if (equipButton) equipButton.gameObject.SetActive(false);
         }
 
         tooltipPanel.SetActive(true);
@@ -91,19 +87,16 @@ public class ItemTooltip : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         }
     }
 
-    // --- ЛОГИКА КНОПОК ---
 
     private void OnEquipClicked()
     {
         if (currentItem != null && isInInventory)
         {
-            // Вызываем метод экипировки в системе инвентаря
             InventorySystem.Instance.EquipItem(currentItem);
-            ForceHide(); // Закрываем тултип после выбора
+            ForceHide();
         }
     }
 
-    // Остальные методы без изменений...
     private void RefreshUI()
     {
         if (currentItem != null)
